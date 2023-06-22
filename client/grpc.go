@@ -111,6 +111,8 @@ func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 		cw.handleJobGetMail(j)
 	case protocol.MessageType_GET_KEYWORD:
 		cw.handleJobGetKeyword(j)
+	default:
+		cw.handleJobError(j, protocol.ErrUnknownRequestType)
 	}
 }
 

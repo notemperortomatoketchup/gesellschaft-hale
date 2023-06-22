@@ -3,6 +3,7 @@ package protocol
 import "errors"
 
 var (
+	ErrUnknownRequestType     = errors.New("unknown request job type")
 	ErrUnspecifiedRequestType = errors.New("unspecified request job type")
 	ErrGenerateId             = errors.New("could not generate unique id")
 	ErrPoolZeroCap            = errors.New("pool cannot start with 0 as capacity")
