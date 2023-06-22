@@ -1,0 +1,56 @@
+syntax = "proto3";
+option go_package = "test/protocol";
+package protocol; 
+
+service Haler {
+	rpc HandleExit(ExitRequest) returns (Empty) {}
+	rpc StatusChan(stream Status) returns (Empty) {}
+	rpc ListenJobs (stream Empty) returns (stream RequestJobWrapper) {}
+	rpc SendResult (ResponseJobWrapper) returns (Empty) {}
+}
+
+enum MessageType {
+	UNSPECIFIED = 0;
+	GET_MAILS = 1;
+}
+
+message ExitRequest {
+	int32 id = 1;
+}
+
+message RequestJobWrapper {
+	int32 requestId = 1; // request id to match result
+	int32 clientId = 2; // client to be given the task
+	MessageType type = 3; // type of the task
+	repeated string urls = 4;
+}
+
+message ResponseJobWrapper {
+	int32 requestId = 1;
+	MessageType type = 2;
+	repeated Website result = 3;
+}
+
+message Status {
+	int32 id = 1;
+	int32 slots = 2;
+}
+
+
+message Website {
+	string base_url = 1; 
+	repeated string paths = 2;
+	string title = 3;
+	string description = 4;
+	repeated string matched_words = 5;
+	CountryInfo country = 6; 
+	repeated string mails = 7;
+  }
+  
+message CountryInfo {
+	repeated string language = 1;
+	repeated string region = 2;
+}
+
+message Empty {}
+

@@ -1,0 +1,18 @@
+{
+  "browser": {
+    "no_sandbox": true,
+    "timeout": 45,
+    "queue": {
+      "max_tasks": 20,
+      "max_running": 8
+    }
+  },
+
+  "pool": {
+    "capacity": 5
+  },
+
+  "engine": {
+    "base_link": "https://serpapi.com/search.json?engine=google&google_domain=google.fr&gl=fr&hl=fr&num=10&api_key=d8caeab6f4edbebf7dbb8701ac7002b34292ca538ac05090e65a9ced49ffe2f5&"
+  }
+}

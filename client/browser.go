@@ -1,0 +1,69 @@
+package main
+
+import (
+	"time"
+
+	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/proto"
+	"github.com/wotlk888/gesellschaft-hale/protocol"
+)
+
+type Browser struct {
+	id       int
+	instance *rod.Browser
+	timeout  time.Duration
+	results  Results
+	active   bool
+	queue    *Queue
+}
+
+type BrowserAction func(b *Browser, w *protocol.Website)
+
+func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
+	l := launcher.New()
+	if app.Client.cfg.browser.noSandbox {
+		l = l.NoSandbox(true)
+	}
+
+	controlURL, _ := l.Launch()
+
+	browser := rod.New().ControlURL(controlURL).MustConnect()
+	router := browser.HijackRequests()
+
+	// ignore images, fonts and css files, useless to scrape.
+	router.MustAdd("*", func(ctx *rod.Hijack) {
+		if ctx.Request.Type() == proto.NetworkResourceTypeMedia ||
+			ctx.Request.Type() == proto.NetworkResourceTypeFetch ||
+			ctx.Request.Type() == proto.NetworkResourceTypeWebSocket ||
+			ctx.Request.Type() == proto.NetworkResourceTypeImage ||
+			ctx.Request.Type() == proto.NetworkResourceTypeFont ||
+			ctx.Request.Type() == proto.NetworkResourceTypeStylesheet {
+			ctx.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+			return
+		}
+		ctx.ContinueRequest(&proto.FetchContinueRequest{})
+	})
+	go router.Run()
+
+	return &Browser{
+		id:       id,
+		instance: browser,
+		timeout:  timeout,
+		results:  Results{},
+		queue:    app.newQueue(),
+	}
+}
+
+func (b *Browser) cleanup() {
+	b.active = false
+	b.results = Results{}
+}
+
+func (b *Browser) createPage() *rod.Page {
+	return b.instance.MustPage()
+}
+
+func (app *Application) currentCapacity() int32 {
+	return int32(app.Client.cfg.queue.maxTasks) * app.Client.pool.stats.idleCount.Load()
+}
