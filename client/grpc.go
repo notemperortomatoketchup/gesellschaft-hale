@@ -105,6 +105,8 @@ func (app *Application) listenLoop() {
 
 func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 	switch j.GetType() {
+	case protocol.MessageType_UNSPECIFIED:
+		cw.handleJobError(j, protocol.ErrUnspecifiedRequestType)
 	case protocol.MessageType_GET_MAILS:
 		cw.handleJobGetMail(j)
 	case protocol.MessageType_GET_KEYWORD:
@@ -112,9 +114,22 @@ func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 	}
 }
 
+func (cw *ClientWrapper) handleJobError(j *protocol.RequestJobWrapper, err error) {
+	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
+		RequestId: j.GetRequestId(),
+		Type:      protocol.MessageType_ERROR,
+		Error:     err.Error(),
+	})
+}
+
 func (cw *ClientWrapper) handleJobGetMail(j *protocol.RequestJobWrapper) {
 	jobs := makeJobsFromUrls(j.GetUrls(), actionExtractMails)
-	results, _ := cw.smartLaunch(jobs)
+	results, err := cw.smartLaunch(jobs)
+	if err != nil {
+		cw.handleJobError(j, err)
+		return
+	}
+
 	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
 		RequestId: j.GetRequestId(),
 		Type:      protocol.MessageType_GET_MAILS,
@@ -123,7 +138,12 @@ func (cw *ClientWrapper) handleJobGetMail(j *protocol.RequestJobWrapper) {
 }
 
 func (cw *ClientWrapper) handleJobGetKeyword(j *protocol.RequestJobWrapper) {
-	results, _ := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
+	results, err := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
+	if err != nil {
+		cw.handleJobError(j, err)
+		return
+	}
+
 	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
 		RequestId: j.GetRequestId(),
 		Type:      protocol.MessageType_GET_KEYWORD,

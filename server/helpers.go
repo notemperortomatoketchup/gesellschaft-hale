@@ -1,12 +1,13 @@
 package main
 
 import (
+	"errors"
 	"time"
 
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
-func (app *Application) awaitResults(id int32) *protocol.ResponseJobWrapper {
+func (app *Application) awaitResults(id int32) (*protocol.ResponseJobWrapper, error) {
 	var result *protocol.ResponseJobWrapper
 
 	// as long as result is nil we shall range.
@@ -22,5 +23,9 @@ func (app *Application) awaitResults(id int32) *protocol.ResponseJobWrapper {
 		})
 	}
 
-	return result
+	if result.Type == protocol.MessageType_ERROR {
+		return nil, errors.New(result.GetError())
+	}
+
+	return result, nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -41,7 +40,6 @@ func (app *Application) handleKeyword(c echo.Context) error {
 	request := new(HandleKeywordRequest)
 	response := new(HandleKeywordResponse)
 
-	fmt.Println("here")
 	reqId := protocol.GenerateId()
 	if err := bind(c, &request); err != nil {
 		return err
@@ -64,7 +62,11 @@ func (app *Application) handleKeyword(c echo.Context) error {
 		PagesCount: int32(request.Pages),
 	}
 
-	r := app.awaitResults(reqId)
+	r, err := app.awaitResults(reqId)
+	if err != nil {
+		return internalError(err)
+	}
+
 	response.Websites = r.GetResult()
 
 	return c.JSON(http.StatusOK, response)
@@ -95,7 +97,10 @@ func (app *Application) handleMails(c echo.Context) error {
 		Urls:      request.Urls,
 	}
 
-	r := app.awaitResults(reqId)
+	r, err := app.awaitResults(reqId)
+	if err != nil {
+		return internalError(err)
+	}
 	response.Websites = r.GetResult()
 
 	return c.JSON(http.StatusOK, response)

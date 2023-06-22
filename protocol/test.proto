@@ -11,8 +11,9 @@ service Haler {
 
 enum MessageType {
 	UNSPECIFIED = 0;
-	GET_MAILS = 1;
-	GET_KEYWORD = 2;
+	ERROR = 1;
+	GET_MAILS = 2;
+	GET_KEYWORD = 3;
 }
 
 message ExitRequest {
@@ -32,6 +33,7 @@ message ResponseJobWrapper {
 	int32 requestId = 1;
 	MessageType type = 2;
 	repeated Website result = 3;
+	string error = 4;
 }
 
 message Status {
