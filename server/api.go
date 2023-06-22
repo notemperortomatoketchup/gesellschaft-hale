@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -40,6 +41,7 @@ func (app *Application) handleKeyword(c echo.Context) error {
 	request := new(HandleKeywordRequest)
 	response := new(HandleKeywordResponse)
 
+	fmt.Println("here")
 	reqId := protocol.GenerateId()
 	if err := bind(c, &request); err != nil {
 		return err
@@ -48,6 +50,7 @@ func (app *Application) handleKeyword(c echo.Context) error {
 	if err := validateHandleKeyword(request); err != nil {
 		return err
 	}
+
 	client, ok := app.GetAvailableClient(0)
 	if !ok {
 		return internalError(protocol.ErrNoBrowserAvailable)
@@ -55,6 +58,7 @@ func (app *Application) handleKeyword(c echo.Context) error {
 
 	app.RequestCh <- &protocol.RequestJobWrapper{
 		RequestId:  reqId,
+		Type:       protocol.MessageType_GET_KEYWORD,
 		ClientId:   client.id,
 		Keyword:    request.Keyword,
 		PagesCount: int32(request.Pages),
@@ -62,6 +66,7 @@ func (app *Application) handleKeyword(c echo.Context) error {
 
 	r := app.awaitResults(reqId)
 	response.Websites = r.GetResult()
+	fmt.Println("We got results:", response.Websites)
 
 	return c.JSON(http.StatusOK, response)
 }
