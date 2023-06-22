@@ -41,7 +41,6 @@ func (app *Application) handleKeyword(c echo.Context) error {
 	request := new(HandleKeywordRequest)
 	response := new(HandleKeywordResponse)
 
-	reqId := protocol.GenerateId()
 	if err := bind(c, &request); err != nil {
 		return err
 	}
@@ -50,25 +49,12 @@ func (app *Application) handleKeyword(c echo.Context) error {
 		return err
 	}
 
-	client, ok := app.GetAvailableClient(0)
-	if !ok {
-		return internalError(protocol.ErrNoBrowserAvailable)
-	}
-
-	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId:  reqId,
-		Type:       protocol.MessageType_GET_KEYWORD,
-		ClientId:   client.id,
-		Keyword:    request.Keyword,
-		PagesCount: int32(request.Pages),
-	}
-
-	r, err := app.awaitResults(reqId)
+	results, err := app.getKeywordResults(request.Keyword, request.Pages)
 	if err != nil {
-		return internalError(err)
+		return err
 	}
 
-	response.Websites = r.GetResult()
+	response.Websites = results
 
 	return c.JSON(http.StatusOK, response)
 }
@@ -77,7 +63,6 @@ func (app *Application) handleMails(c echo.Context) error {
 	request := new(HandleGetMailsRequest)
 	response := new(HandleGetMailsResponse)
 
-	reqId := protocol.GenerateId()
 	if err := bind(c, &request); err != nil {
 		return err
 	}
@@ -86,23 +71,12 @@ func (app *Application) handleMails(c echo.Context) error {
 		return err
 	}
 
-	client, ok := app.GetAvailableClient(int32(len(request.Urls)))
-	if !ok {
-		return internalError(protocol.ErrNoBrowserAvailable)
-	}
-
-	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId: reqId,
-		ClientId:  client.id,
-		Type:      protocol.MessageType_GET_MAILS,
-		Urls:      request.Urls,
-	}
-
-	r, err := app.awaitResults(reqId)
+	results, err := app.getMailsFromUrls(request.Urls)
 	if err != nil {
-		return internalError(err)
+		return err
 	}
-	response.Websites = r.GetResult()
+
+	response.Websites = results
 
 	return c.JSON(http.StatusOK, response)
 }

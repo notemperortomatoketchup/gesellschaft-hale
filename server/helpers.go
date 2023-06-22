@@ -29,3 +29,48 @@ func (app *Application) awaitResults(id int32) (*protocol.ResponseJobWrapper, er
 
 	return result, nil
 }
+
+func (app *Application) getMailsFromUrls(urls []string) ([]*protocol.Website, error) {
+	reqId := protocol.GenerateId()
+	client, ok := app.GetAvailableClient(int32(len(urls)))
+	if !ok {
+		return nil, internalError(protocol.ErrNoBrowserAvailable)
+	}
+
+	app.RequestCh <- &protocol.RequestJobWrapper{
+		RequestId: reqId,
+		ClientId:  client.id,
+		Type:      protocol.MessageType_GET_MAILS,
+		Urls:      urls,
+	}
+
+	r, err := app.awaitResults(reqId)
+	if err != nil {
+		return nil, internalError(err)
+	}
+
+	return r.GetResult(), nil
+}
+
+func (app *Application) getKeywordResults(kw string, pages int) ([]*protocol.Website, error) {
+	reqId := protocol.GenerateId()
+	client, ok := app.GetAvailableClient(0)
+	if !ok {
+		return nil, internalError(protocol.ErrNoBrowserAvailable)
+	}
+
+	app.RequestCh <- &protocol.RequestJobWrapper{
+		RequestId:  reqId,
+		Type:       protocol.MessageType_GET_KEYWORD,
+		ClientId:   client.id,
+		Keyword:    kw,
+		PagesCount: int32(pages),
+	}
+
+	r, err := app.awaitResults(reqId)
+	if err != nil {
+		return nil, internalError(err)
+	}
+
+	return r.GetResult(), nil
+}
