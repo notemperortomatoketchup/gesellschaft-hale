@@ -14,6 +14,7 @@ enum MessageType {
 	ERROR = 1;
 	GET_MAILS = 2;
 	GET_KEYWORD = 3;
+	GET_MAILS_KEYWORD = 4; // get keyword result, then grab mails
 }
 
 message ExitRequest {
