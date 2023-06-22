@@ -12,9 +12,9 @@ service Haler {
 enum MessageType {
 	UNSPECIFIED = 0;
 	ERROR = 1;
-	GET_MAILS = 2;
+	GET_MAILS_URLS = 2;
 	GET_KEYWORD = 3;
-	GET_MAILS_KEYWORD = 4; // get keyword result, then grab mails
+	GET_MAILS_WEBSITES = 4; // if we transmit existing Websites!
 }
 
 message ExitRequest {
@@ -25,9 +25,10 @@ message RequestJobWrapper {
 	int32 requestId = 1; // request id to match result
 	int32 clientId = 2; // client to be given the task
 	MessageType type = 3; // type of the task
-	repeated string urls = 4;
-	string keyword = 5;
-	int32 pagesCount = 6;
+	repeated string urls = 4; // to use if we only have urls to start with, use GET_MAILS_URLS
+	repeated Website websites = 5; // to use if we have existing Website object, use GET_MAILS_WEBSITES
+	string keyword = 6;
+	int32 pagesCount = 7;
 }
 
 message ResponseJobWrapper {

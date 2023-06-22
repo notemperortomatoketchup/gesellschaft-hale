@@ -85,7 +85,6 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 	request := new(HandleKeywordRequest)
 	response := new(HandleKeywordResponse)
 
-	reqId := protocol.GenerateId()
 	if err := bind(c, &request); err != nil {
 		return err
 	}
@@ -94,47 +93,17 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 		return err
 	}
 
-	client, ok := app.GetAvailableClient(0)
-	if !ok {
-		return internalError(protocol.ErrNoBrowserAvailable)
-	}
-
-	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId:  reqId,
-		Type:       protocol.MessageType_GET_KEYWORD,
-		ClientId:   client.id,
-		Keyword:    request.Keyword,
-		PagesCount: int32(request.Pages),
-	}
-
-	r, err := app.awaitResults(reqId)
+	scraped, err := app.getKeywordResults(request.Keyword, request.Pages)
 	if err != nil {
-		return internalError(err)
+		return err
 	}
 
-	var websitesUrls []string
-	for _, w := range r.GetResult() {
-		websitesUrls = append(websitesUrls, w.GetBaseUrl())
-	}
-
-	client, ok = app.GetAvailableClient(int32(len(websitesUrls)))
-	if !ok {
-		return internalError(protocol.ErrNoBrowserAvailable)
-	}
-
-	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId: reqId,
-		ClientId:  client.id,
-		Type:      protocol.MessageType_GET_MAILS,
-		Urls:      websitesUrls,
-	}
-
-	r, err = app.awaitResults(reqId)
+	results, err := app.getMailsFromWebsites(scraped)
 	if err != nil {
-		return internalError(err)
+		return err
 	}
 
-	response.Websites = r.GetResult()
+	response.Websites = results
 
 	return c.JSON(http.StatusOK, response)
 }

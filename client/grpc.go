@@ -107,8 +107,10 @@ func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 	switch j.GetType() {
 	case protocol.MessageType_UNSPECIFIED:
 		cw.handleJobError(j, protocol.ErrUnspecifiedRequestType)
-	case protocol.MessageType_GET_MAILS:
-		cw.handleJobGetMail(j)
+	case protocol.MessageType_GET_MAILS_URLS:
+		cw.handleJobGetMailUrl(j)
+	case protocol.MessageType_GET_MAILS_WEBSITES:
+		cw.handleJobGetMailWebsite(j)
 	case protocol.MessageType_GET_KEYWORD:
 		cw.handleJobGetKeyword(j)
 	// case protocol.MessageType_GET_MAILS_KEYWORD:
@@ -126,7 +128,7 @@ func (cw *ClientWrapper) handleJobError(j *protocol.RequestJobWrapper, err error
 	})
 }
 
-func (cw *ClientWrapper) handleJobGetMail(j *protocol.RequestJobWrapper) {
+func (cw *ClientWrapper) handleJobGetMailUrl(j *protocol.RequestJobWrapper) {
 	jobs := makeJobsFromUrls(j.GetUrls(), actionExtractMails)
 	results, err := cw.smartLaunch(jobs)
 	if err != nil {
@@ -136,7 +138,22 @@ func (cw *ClientWrapper) handleJobGetMail(j *protocol.RequestJobWrapper) {
 
 	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
 		RequestId: j.GetRequestId(),
-		Type:      protocol.MessageType_GET_MAILS,
+		Type:      protocol.MessageType_GET_MAILS_URLS,
+		Result:    results,
+	})
+}
+
+func (cw *ClientWrapper) handleJobGetMailWebsite(j *protocol.RequestJobWrapper) {
+	jobs := makeJobsFromWebsites(j.GetWebsites(), actionExtractMails)
+	results, err := cw.smartLaunch(jobs)
+	if err != nil {
+		cw.handleJobError(j, err)
+		return
+	}
+
+	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
+		RequestId: j.GetRequestId(),
+		Type:      protocol.MessageType_GET_MAILS_WEBSITES,
 		Result:    results,
 	})
 }

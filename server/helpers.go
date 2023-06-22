@@ -40,8 +40,30 @@ func (app *Application) getMailsFromUrls(urls []string) ([]*protocol.Website, er
 	app.RequestCh <- &protocol.RequestJobWrapper{
 		RequestId: reqId,
 		ClientId:  client.id,
-		Type:      protocol.MessageType_GET_MAILS,
+		Type:      protocol.MessageType_GET_MAILS_URLS,
 		Urls:      urls,
+	}
+
+	r, err := app.awaitResults(reqId)
+	if err != nil {
+		return nil, internalError(err)
+	}
+
+	return r.GetResult(), nil
+}
+
+func (app *Application) getMailsFromWebsites(websites []*protocol.Website) ([]*protocol.Website, error) {
+	reqId := protocol.GenerateId()
+	client, ok := app.GetAvailableClient(int32(len(websites)))
+	if !ok {
+		return nil, internalError(protocol.ErrNoBrowserAvailable)
+	}
+
+	app.RequestCh <- &protocol.RequestJobWrapper{
+		RequestId: reqId,
+		ClientId:  client.id,
+		Type:      protocol.MessageType_GET_MAILS_WEBSITES,
+		Websites:  websites,
 	}
 
 	r, err := app.awaitResults(reqId)
