@@ -49,6 +49,10 @@ func (app *Application) startEngine() {
 }
 
 func (e *Engine) scrapeKeyword(kw string, pages int) ([]*protocol.Website, error) {
+	if pages == 0 {
+		pages = 1
+	}
+
 	kw = strings.ReplaceAll(kw, " ", "+") // for send http
 	results := new(Results)
 

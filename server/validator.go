@@ -91,3 +91,23 @@ func validateHandleMails(r *HandleGetMailsRequest) error {
 
 	return nil
 }
+
+func validateHandleKeyword(r *HandleKeywordRequest) error {
+	if err := assertNotEmptyString("keyword", r.Keyword); err != nil {
+		return err
+	}
+
+	if err := assertType("keyword", r.Keyword, "string"); err != nil {
+		return err
+	}
+
+	if err := assertType("pages", r.Pages, "int"); err != nil {
+		return err
+	}
+
+	if err := assertRangeInt("pages", r.Pages, 1, 10); err != nil {
+		return err
+	}
+
+	return nil
+}
