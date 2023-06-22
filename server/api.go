@@ -66,7 +66,6 @@ func (app *Application) handleKeyword(c echo.Context) error {
 
 	r := app.awaitResults(reqId)
 	response.Websites = r.GetResult()
-	fmt.Println("We got results:", response.Websites)
 
 	return c.JSON(http.StatusOK, response)
 }

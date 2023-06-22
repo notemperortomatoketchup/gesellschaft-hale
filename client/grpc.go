@@ -106,19 +106,27 @@ func (app *Application) listenLoop() {
 func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 	switch j.GetType() {
 	case protocol.MessageType_GET_MAILS:
-		jobs := makeJobsFromUrls(j.GetUrls(), actionExtractMails)
-		results, _ := cw.smartLaunch(jobs)
-		cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
-			RequestId: j.GetRequestId(),
-			Type:      protocol.MessageType_GET_MAILS,
-			Result:    results,
-		})
+		cw.handleJobGetMail(j)
 	case protocol.MessageType_GET_KEYWORD:
-		results, _ := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
-		cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
-			RequestId: j.GetRequestId(),
-			Type:      protocol.MessageType_GET_KEYWORD,
-			Result:    results,
-		})
+		cw.handleJobGetKeyword(j)
 	}
+}
+
+func (cw *ClientWrapper) handleJobGetMail(j *protocol.RequestJobWrapper) {
+	jobs := makeJobsFromUrls(j.GetUrls(), actionExtractMails)
+	results, _ := cw.smartLaunch(jobs)
+	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
+		RequestId: j.GetRequestId(),
+		Type:      protocol.MessageType_GET_MAILS,
+		Result:    results,
+	})
+}
+
+func (cw *ClientWrapper) handleJobGetKeyword(j *protocol.RequestJobWrapper) {
+	results, _ := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
+	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
+		RequestId: j.GetRequestId(),
+		Type:      protocol.MessageType_GET_KEYWORD,
+		Result:    results,
+	})
 }
