@@ -12,6 +12,7 @@ service Haler {
 enum MessageType {
 	UNSPECIFIED = 0;
 	GET_MAILS = 1;
+	GET_KEYWORD = 2;
 }
 
 message ExitRequest {
@@ -23,6 +24,8 @@ message RequestJobWrapper {
 	int32 clientId = 2; // client to be given the task
 	MessageType type = 3; // type of the task
 	repeated string urls = 4;
+	string keyword = 5;
+	int32 pagesCount = 6;
 }
 
 message ResponseJobWrapper {

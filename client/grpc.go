@@ -113,5 +113,12 @@ func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 			Type:      protocol.MessageType_GET_MAILS,
 			Result:    results,
 		})
+	case protocol.MessageType_GET_KEYWORD:
+		results, _ := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
+		cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
+			RequestId: j.GetRequestId(),
+			Type:      protocol.MessageType_GET_KEYWORD,
+			Result:    results,
+		})
 	}
 }
