@@ -24,18 +24,27 @@ type ClientWrapper struct {
 	isReconnecting atomic.Bool
 }
 
-func (app *Application) initClient() error {
-	id := protocol.GenerateId()
+func (app *Application) resolveDomain() string {
+	// start at localhost, in case we are in dev
+	// adjust if we are not with the if
+	resolved := "localhost"
 
-	ips, err := net.LookupIP("hale.gesellschaft.studio")
-	if err != nil {
-		log.Fatalf("err resolving domain: %v", err)
+	if !app.Client.cfg.core.devMode {
+		ips, err := net.LookupIP(app.Client.cfg.core.domain)
+		if err != nil {
+			log.Fatalf("err resolving domain: %v", err)
+		}
+		resolved = ips[0].String()
 	}
 
-	resolved := ips[0].String()
-	log.Printf("resolved: %s\n", resolved)
+	return resolved
+}
 
-	conn, err := grpc.Dial(resolved+":50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+func (app *Application) initClient() error {
+	id := protocol.GenerateId()
+	ip := app.resolveDomain()
+
+	conn, err := grpc.Dial(ip+":50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("error dialing the grpc server: %v", err)
 	}

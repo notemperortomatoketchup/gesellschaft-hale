@@ -20,6 +20,12 @@ type Config struct {
 	browser BrowserConfig
 	queue   QueueConfig
 	engine  EngineConfig
+	core    CoreConfig
+}
+
+type CoreConfig struct {
+	devMode bool
+	domain  string
 }
 
 type PoolConfig struct {
@@ -65,6 +71,9 @@ func (app *Application) loadConfig() {
 	viper.SetConfigFile("config.json")
 	viper.SetConfigType("json")
 	viper.ReadInConfig()
+
+	app.Client.cfg.core.devMode = viper.GetBool("core.dev_mode")
+	app.Client.cfg.core.domain = viper.GetString("core.domain")
 
 	app.Client.cfg.browser.timeout = viper.GetDuration("browser.timeout") * time.Second
 	app.Client.cfg.pool.capacity = viper.GetInt("pool.capacity")

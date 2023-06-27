@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
@@ -27,10 +28,13 @@ type HandleKeywordResponse struct {
 
 func (app *Application) initAPI() {
 	e := echo.New()
+	e.Use(middleware.CORS())
 	api := e.Group("api")
+
 	api.POST("/mail", app.handleMails)
 	api.POST("/keyword", app.handleKeyword)
 	api.POST("/keywordmail", app.handleMailsFromKeyword)
+
 
 	if err := e.StartTLS(":443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatal(err)

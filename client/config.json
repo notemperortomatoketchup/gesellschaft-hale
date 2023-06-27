@@ -1,9 +1,14 @@
 {
+  "core": {
+    "dev_mode": false,
+    "domain": "hale.gesellschaft.studio"
+  },
+
   "browser": {
     "no_sandbox": true,
-    "timeout": 45,
+    "timeout": 50,
     "queue": {
-      "max_tasks": 20,
+      "max_tasks": 100,
       "max_running": 8
     }
   },
