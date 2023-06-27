@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"net"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -25,7 +26,16 @@ type ClientWrapper struct {
 
 func (app *Application) initClient() error {
 	id := protocol.GenerateId()
-	conn, err := grpc.Dial("localhost:50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	ips, err := net.LookupIP("hale.gesellschaft.studio")
+	if err != nil {
+		log.Fatalf("err resolving domain: %v", err)
+	}
+
+	resolved := ips[0].String()
+	log.Printf("resolved: %s\n", resolved)
+
+	conn, err := grpc.Dial(resolved+":50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("error dialing the grpc server: %v", err)
 	}

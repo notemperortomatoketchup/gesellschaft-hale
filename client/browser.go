@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -25,10 +26,10 @@ func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 	if app.Client.cfg.browser.noSandbox {
 		l = l.NoSandbox(true)
 	}
-
-	controlURL, _ := l.Launch()
-
-	browser := rod.New().ControlURL(controlURL).MustConnect()
+	path, _ := launcher.LookPath()
+	u := launcher.New().Bin(path).MustLaunch()
+	browser := rod.New().ControlURL(u).MustConnect()
+	fmt.Println("started a new browser")
 	router := browser.HijackRequests()
 
 	// ignore images, fonts and css files, useless to scrape.
