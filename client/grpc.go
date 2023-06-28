@@ -132,8 +132,6 @@ func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 		cw.handleJobGetMailWebsite(j)
 	case protocol.MessageType_GET_KEYWORD:
 		cw.handleJobGetKeyword(j)
-	// case protocol.MessageType_GET_MAILS_KEYWORD:
-	// cw.handleJobGetMailsFromKeyword(j)
 	default:
 		cw.handleJobError(j, protocol.ErrUnknownRequestType)
 	}
@@ -191,23 +189,3 @@ func (cw *ClientWrapper) handleJobGetKeyword(j *protocol.RequestJobWrapper) {
 	})
 }
 
-// func (cw *ClientWrapper) handleJobGetMailsFromKeyword(j *protocol.RequestJobWrapper) {
-// 	scraped, err := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
-// 	if err != nil {
-// 		cw.handleJobError(j, err)
-// 		return
-// 	}
-
-// 	jobs := makeJobsFromWebsites(scraped, actionExtractMails)
-// 	results, err := cw.smartLaunch(jobs)
-// 	if err != nil {
-// 		cw.handleJobError(j, err)
-// 		return
-// 	}
-
-// 	cw.Client.SendResult(context.Background(), &protocol.ResponseJobWrapper{
-// 		RequestId: j.GetRequestId(),
-// 		Type:      protocol.MessageType_GET_MAILS_KEYWORD,
-// 		Result:    results,
-// 	})
-// }
