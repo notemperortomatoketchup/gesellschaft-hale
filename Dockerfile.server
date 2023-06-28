@@ -1,0 +1,36 @@
+FROM golang:1.20.5-alpine AS build-base
+
+# more clear, work under /hale
+WORKDIR /hale 
+
+# necessary to use CGO as well as gcc for build
+RUN apk update && apk add --no-cache git make build-base
+
+# copy deps before the whole file, to avoid invalidate caching.
+COPY go.mod go.sum ./
+
+# caches dependencies
+RUN --mount=type=cache,target=/go/pkg/mod \
+	--mount=type=cache,target=/root/.cache/go-build \
+	go mod download
+
+COPY . .
+
+# build, crosscompile for linux.
+RUN cd server && env GOOS=linux GOARCH=amd64 go build  \
+	-ldflags="-linkmode external -extldflags -static" \
+	-tags netgo \
+	-o s
+
+FROM alpine:3.18 
+
+WORKDIR /
+
+# copy revelant files to use in production, so only binary & certs.
+COPY --from=build-base /hale/server/s ./
+COPY --from=build-base /hale/server/certs/ ./certs
+
+# we expose port 443 for the api, 50001 for gRPC.
+EXPOSE 443 50001
+
+CMD ["./s"]
