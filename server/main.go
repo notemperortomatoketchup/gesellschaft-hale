@@ -24,7 +24,7 @@ type Server struct {
 }
 
 type Client struct {
-	id    int32
+	id    uint32
 	slots int32
 }
 

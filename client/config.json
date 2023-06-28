@@ -1,6 +1,6 @@
 {
   "core": {
-    "dev_mode": false,
+    "dev_mode": true,
     "domain": "api.gesellschaft.studio"
   },
 
