@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -55,6 +56,7 @@ func main() {
 	app.startPool(app.Client.cfg.pool.capacity)
 	app.startEngine()
 	app.initClient()
+
 	defer app.Client.Conn.Close()
 	defer app.Client.Client.HandleExit(context.Background(), &protocol.ExitRequest{
 		Id: app.Client.Id,
@@ -66,12 +68,14 @@ func main() {
 }
 
 func (app *Application) loadConfig() {
+	flag.BoolVar(&app.Client.cfg.core.devMode, "dev", false, "enable dev mode")
+	flag.Parse()
+
 	viper.AddConfigPath("./")
 	viper.SetConfigFile("config.json")
 	viper.SetConfigType("json")
 	viper.ReadInConfig()
 
-	app.Client.cfg.core.devMode = viper.GetBool("core.dev_mode")
 	app.Client.cfg.core.domain = viper.GetString("core.domain")
 
 	app.Client.cfg.browser.timeout = viper.GetDuration("browser.timeout") * time.Second
