@@ -188,4 +188,3 @@ func (cw *ClientWrapper) handleJobGetKeyword(j *protocol.RequestJobWrapper) {
 		Result:    results,
 	})
 }
-
