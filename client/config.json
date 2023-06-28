@@ -1,7 +1,7 @@
 {
   "core": {
     "dev_mode": false,
-    "domain": "hale.gesellschaft.studio"
+    "domain": "api.gesellschaft.studio"
   },
 
   "browser": {

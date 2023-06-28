@@ -39,7 +39,7 @@ export default function Home() {
     setIsLoading(true);
     const splittedUrls = urls.split(" ");
     await axios
-      .post("https://hale.gesellschaft.studio/api/mail", {
+      .post("https://api.gesellschaft.studio:8443/api/mail", {
         urls: splittedUrls,
       })
       .then((response) => {

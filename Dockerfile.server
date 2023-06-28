@@ -31,6 +31,6 @@ COPY --from=build-base /hale/server/s ./
 COPY --from=build-base /hale/server/certs/ ./certs
 
 # we expose port 443 for the api, 50001 for gRPC.
-EXPOSE 443 50001
+EXPOSE 8443 50001
 
 CMD ["./s"]

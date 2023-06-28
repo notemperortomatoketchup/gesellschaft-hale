@@ -7,7 +7,8 @@ docker-client:
 docker-server:
 	docker build --platform linux/amd64 -f Dockerfile.server -t gesellschaft-hale-server .\
 
-docker-all: docker-client docker-server
+
+docker-all: docker-client docker-server 
 
 docker-client-push:
 	docker tag gesellschaft-hale-client wotlk888/gesellschaft-hale:client 
@@ -17,10 +18,10 @@ docker-server-push:
 	docker tag gesellschaft-hale-server wotlk888/gesellschaft-hale:server
 	docker push wotlk888/gesellschaft-hale:server
 
-docker-all-push: docker-client-push docker-server-push
+docker-all-push: docker-client-push docker-server-push 
 
 docker-client-run: 
-	docker run -p 443:443 -p 50001:50001 -it --rm gesellschaft-hale-client 
+	docker run -P -it --rm gesellschaft-hale-client 
 
 docker-server-run:
 	docker run -p 443:443 -p 50001:50001 -it --rm gesellschaft-hale-server
