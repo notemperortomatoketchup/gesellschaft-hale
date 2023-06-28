@@ -56,14 +56,13 @@ func main() {
 	app.startEngine()
 	app.initClient()
 	defer app.Client.Conn.Close()
+	defer app.Client.Client.HandleExit(context.Background(), &protocol.ExitRequest{
+		Id: app.Client.Id,
+	})
 
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 	<-terminate
-
-	app.Client.Client.HandleExit(context.Background(), &protocol.ExitRequest{
-		Id: app.Client.Id,
-	})
 }
 
 func (app *Application) loadConfig() {

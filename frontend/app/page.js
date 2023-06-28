@@ -52,7 +52,7 @@ export default function Home() {
 
   return (
     <div className=" w-full h-screen text-white flex justify-center items-center ">
-      <div className="w-1/2 mx-auto flex-col">
+      <div className="lg:w-1/2 mx-auto flex-col px-4">
         <Card>
           <CardHeader>
             <CardTitle>Scrape websites</CardTitle>

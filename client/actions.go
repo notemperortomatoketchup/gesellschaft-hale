@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
@@ -18,7 +19,9 @@ func actionExtractMails(b *Browser, w *protocol.Website) {
 		stepExtractPaths(page, w, patterns)
 		stepExtractMails(page, w)
 		successCh <- struct{}{}
-		page.MustClose()
+		if err := page.Close(); err != nil {
+			log.Printf("error closing page: %v", err)
+		}
 	}()
 
 	select {
