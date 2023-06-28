@@ -15,7 +15,7 @@ import (
 )
 
 type ClientWrapper struct {
-	Id             int32
+	Id             uint32
 	Client         protocol.HalerClient
 	Conn           *grpc.ClientConn
 	cfg            Config

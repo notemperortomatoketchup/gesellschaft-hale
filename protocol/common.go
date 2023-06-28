@@ -4,8 +4,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func GenerateId() int32 {
-	return int32(uuid.New().ID())
+func GenerateId() uint32 {
+	return uuid.New().ID()
 }
 
 func AppendUnique[T comparable](s []T, el T) []T {
