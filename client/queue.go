@@ -73,8 +73,7 @@ func (b *Browser) processQueue(jobs ...*Job) []*protocol.Website {
 			select {
 			case job := <-b.queue.incomingCh:
 				go func(j *Job) {
-					for {
-						time.Sleep(1 * time.Second)
+					for range time.Tick(time.Second) {
 						if b.queue.running.Load() >= b.queue.maxRunning {
 							continue
 						}
