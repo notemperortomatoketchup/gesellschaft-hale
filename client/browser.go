@@ -19,7 +19,7 @@ type Browser struct {
 	queue    *Queue
 }
 
-type BrowserAction func(b *Browser, w *protocol.Website)
+type BrowserAction func(b *Browser, w *protocol.Website) error
 
 func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 	l := launcher.New()
@@ -64,10 +64,8 @@ func (b *Browser) cleanup() {
 	b.results = Results{}
 }
 
-func (b *Browser) createPage(url string) (*rod.Page, error) {
-	page, err := b.instance.Page(proto.TargetCreateTarget{
-		URL: url,
-	})
+func (b *Browser) createPage() (*rod.Page, error) {
+	page, err := b.instance.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, err
 	}

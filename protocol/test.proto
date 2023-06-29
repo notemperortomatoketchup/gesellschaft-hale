@@ -52,6 +52,7 @@ message Website {
 	repeated string matched_words = 5;
 	CountryInfo country = 6; 
 	repeated string mails = 7;
+	bool timeout = 8;
   }
   
 message CountryInfo {

@@ -8,7 +8,7 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
-func actionExtractMails(b *Browser, w *protocol.Website) {
+func actionExtractMails(b *Browser, w *protocol.Website) error {
 	patterns := []string{"info", "more", "contact", "about", "legal", "privacy"}
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeout)
 	defer cancel()
@@ -16,10 +16,11 @@ func actionExtractMails(b *Browser, w *protocol.Website) {
 	successCh := make(chan struct{}, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		page, err := b.createPage(w.BaseUrl)
+		page, err := b.createPage()
 		if err != nil {
 			log.Printf("error creating page: %v", err)
 			errorCh <- err
+			return
 		}
 
 		stepExtractPaths(page, w, patterns)
@@ -28,16 +29,16 @@ func actionExtractMails(b *Browser, w *protocol.Website) {
 		if err := page.Close(); err != nil {
 			log.Printf("error closing page: %v", err)
 			errorCh <- err
+			return
 		}
 	}()
 
 	select {
 	case <-successCh:
-		break
-	case <-errorCh:
-		break
+		return nil
+	case err := <-errorCh:
+		return err
 	case <-ctx.Done():
-		fmt.Println("context timed out for", w.BaseUrl)
-		break
+		return fmt.Errorf("website timed out")
 	}
 }

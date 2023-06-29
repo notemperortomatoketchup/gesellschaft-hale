@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -78,7 +80,13 @@ func (b *Browser) processQueue(jobs ...*Job) []*protocol.Website {
 							continue
 						}
 						b.queue.running.Add(1)
-						j.action(b, j.website)
+						err := j.action(b, j.website)
+						if err != nil {
+							log.Printf("error doing job: %v", err)
+							if strings.Contains(err.Error(), "timed out") {
+								j.website.Timeout = true
+							}
+						}
 						results.Append(j.website)
 						b.queue.running.Add(-1)
 						break
