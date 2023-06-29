@@ -23,13 +23,16 @@ type BrowserAction func(b *Browser, w *protocol.Website)
 
 func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 	l := launcher.New()
+	// fix for docker
+	l.Append("--disable-dev-shm-usage")
 	if app.Client.cfg.browser.noSandbox {
 		l = l.NoSandbox(true)
 	}
 	path, _ := launcher.LookPath()
-	u := launcher.New().Bin(path).MustLaunch()
+	u := l.Bin(path).MustLaunch()
 	browser := rod.New().ControlURL(u).MustConnect()
-	fmt.Println("started a new browser")
+
+	fmt.Println("started a new browser with flags:", l.Flags)
 	router := browser.HijackRequests()
 
 	// ignore images, fonts and css files, useless to scrape.
@@ -61,8 +64,10 @@ func (b *Browser) cleanup() {
 	b.results = Results{}
 }
 
-func (b *Browser) createPage() (*rod.Page, error){
-	page, err := b.instance.Page(proto.TargetCreateTarget{})
+func (b *Browser) createPage(url string) (*rod.Page, error) {
+	page, err := b.instance.Page(proto.TargetCreateTarget{
+		URL: url,
+	})
 	if err != nil {
 		return nil, err
 	}
