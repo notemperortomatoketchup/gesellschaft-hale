@@ -61,8 +61,13 @@ func (b *Browser) cleanup() {
 	b.results = Results{}
 }
 
-func (b *Browser) createPage() *rod.Page {
-	return b.instance.MustPage()
+func (b *Browser) createPage() (*rod.Page, error){
+	page, err := b.instance.Page(proto.TargetCreateTarget{})
+	if err != nil {
+		return nil, err
+	}
+
+	return page, nil
 }
 
 func (app *Application) currentCapacity() int32 {

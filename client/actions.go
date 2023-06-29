@@ -15,7 +15,10 @@ func actionExtractMails(b *Browser, w *protocol.Website) {
 
 	successCh := make(chan struct{}, 1)
 	go func() {
-		page := b.createPage()
+		page, err := b.createPage()
+		if err != nil {
+			log.Printf("error creating page: %v", err)
+		}
 		stepExtractPaths(page, w, patterns)
 		stepExtractMails(page, w)
 		successCh <- struct{}{}
