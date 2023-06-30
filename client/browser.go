@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -25,6 +24,10 @@ func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 	l := launcher.New()
 	// fix for docker
 	l.Append("--disable-dev-shm-usage")
+	l.Set("ignore-certificate-errors")
+	l.Set("ignore-certificate-errors-spki-list")
+	l.Set("ignore-ssl-errors")
+
 	if app.Client.cfg.browser.noSandbox {
 		l = l.NoSandbox(true)
 	}
@@ -32,7 +35,6 @@ func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 	u := l.Bin(path).MustLaunch()
 	browser := rod.New().ControlURL(u).MustConnect()
 
-	fmt.Println("started a new browser with flags:", l.Flags)
 	router := browser.HijackRequests()
 
 	// ignore images, fonts and css files, useless to scrape.
