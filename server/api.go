@@ -23,7 +23,7 @@ type HandleKeywordRequest struct {
 }
 
 type HandleKeywordResponse struct {
-	Websites []*protocol.Website `json:"websites"`
+	Websites []*protocol.Website `json:"data"`
 }
 
 func (app *Application) initAPI() {
@@ -34,7 +34,6 @@ func (app *Application) initAPI() {
 	api.POST("/mail", app.handleMails)
 	api.POST("/keyword", app.handleKeyword)
 	api.POST("/keywordmail", app.handleMailsFromKeyword)
-
 
 	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatal(err)
