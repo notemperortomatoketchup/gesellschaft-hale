@@ -127,7 +127,9 @@ func (cw *ClientWrapper) handleJobRequest(j *protocol.RequestJobWrapper) {
 	case protocol.MessageType_UNSPECIFIED:
 		cw.handleJobError(j, protocol.ErrUnspecifiedRequestType)
 	case protocol.MessageType_GET_MAILS_URLS:
-		cw.handleJobGetMailUrl(j)
+		go func() {
+			cw.handleJobGetMailUrl(j)
+		}()
 	case protocol.MessageType_GET_MAILS_WEBSITES:
 		cw.handleJobGetMailWebsite(j)
 	case protocol.MessageType_GET_KEYWORD:
@@ -147,6 +149,7 @@ func (cw *ClientWrapper) handleJobError(j *protocol.RequestJobWrapper, err error
 
 func (cw *ClientWrapper) handleJobGetMailUrl(j *protocol.RequestJobWrapper) {
 	jobs := makeJobsFromUrls(j.GetUrls(), actionExtractMails)
+
 	results, err := cw.smartLaunch(jobs)
 	if err != nil {
 		cw.handleJobError(j, err)
