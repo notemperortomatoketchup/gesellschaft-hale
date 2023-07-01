@@ -31,6 +31,7 @@ func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 	if app.Client.cfg.browser.noSandbox {
 		l = l.NoSandbox(true)
 	}
+
 	path, _ := launcher.LookPath()
 	u := l.Bin(path).MustLaunch()
 	browser := rod.New().ControlURL(u).MustConnect()

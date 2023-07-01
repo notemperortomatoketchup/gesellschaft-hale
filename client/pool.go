@@ -95,10 +95,12 @@ func (cw *ClientWrapper) smartLaunch(jobs []*Job) ([]*protocol.Website, error) {
 			if err != nil {
 				return
 			}
-
-			res := b.processQueue(jobs[i:end]...)
-			results.Append(res...)
 			defer cw.pool.put(b)
+
+			go func() {
+				res := b.processQueue(jobs[i:end]...)
+				results.Append(res...)
+			}()
 		}(i)
 	}
 	wg.Wait()
