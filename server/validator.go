@@ -105,7 +105,7 @@ func validateHandleKeyword(r *HandleKeywordRequest) error {
 		return err
 	}
 
-	if err := assertRangeInt("pages", r.Pages, 1, 10); err != nil {
+	if err := assertRangeInt("pages", r.Pages, 1, 30); err != nil {
 		return err
 	}
 
