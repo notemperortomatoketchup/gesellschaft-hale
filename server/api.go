@@ -33,11 +33,13 @@ func (app *Application) initAPI() {
 	e.Use(middleware.CORS())
 
 	api := e.Group("api")
-	api.Use(echojwt.WithConfig(echojwt.Config{
-		SigningKey:    jwtsecret,
-		SigningMethod: "HS256",
-		TokenLookup:   "header:Token",
-	}))
+	if app.UseJWT {
+		api.Use(echojwt.WithConfig(echojwt.Config{
+			SigningKey:    jwtsecret,
+			SigningMethod: "HS256",
+			TokenLookup:   "header:Token",
+		}))
+	}
 	api.POST("/mail", app.handleMails)
 	api.POST("/keyword", app.handleKeyword)
 	api.POST("/keywordmail", app.handleMailsFromKeyword)

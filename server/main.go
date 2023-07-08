@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 	"os"
@@ -13,6 +14,7 @@ import (
 )
 
 type Application struct {
+	UseJWT    bool
 	Clients   sync.Map
 	RequestCh chan *protocol.RequestJobWrapper
 	Results   sync.Map
@@ -34,6 +36,9 @@ func main() {
 	app := &Application{
 		RequestCh: make(chan *protocol.RequestJobWrapper, 5),
 	}
+
+	flag.BoolVar(&app.UseJWT, "jwt", false, "ues jwt or not?")
+	flag.Parse()
 
 	l, err := net.Listen("tcp", ":50001")
 	if err != nil {
