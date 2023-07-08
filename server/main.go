@@ -28,6 +28,8 @@ type Client struct {
 	slots int32
 }
 
+var jwtsecret = []byte("HelloJWT3030033")
+
 func main() {
 	app := &Application{
 		RequestCh: make(chan *protocol.RequestJobWrapper, 5),
@@ -36,6 +38,13 @@ func main() {
 	l, err := net.Listen("tcp", ":50001")
 	if err != nil {
 		log.Fatalf("err listener: %v", err)
+	}
+
+	app.startDB()
+
+	var user *User
+	if err := db.DB.From("users").Select("* WHERE username = 'myusername'").Single().Execute(&user); err != nil {
+		log.Fatalf("err: %v", err)
 	}
 
 	s := grpc.NewServer()

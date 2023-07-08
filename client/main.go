@@ -55,6 +55,7 @@ func main() {
 	app.loadConfig()
 	app.startPool(app.Client.cfg.pool.capacity)
 	app.startEngine()
+
 	app.initClient()
 
 	defer app.Client.Conn.Close()

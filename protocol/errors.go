@@ -3,6 +3,8 @@ package protocol
 import "errors"
 
 var (
+	ErrInvalidCredentials     = errors.New("could not authenticate with given username / password")
+	ErrPasswordEncryption     = errors.New("error while storing your password, try again")
 	ErrUnknownRequestType     = errors.New("unknown request job type")
 	ErrUnspecifiedRequestType = errors.New("unspecified request job type")
 	ErrGenerateId             = errors.New("could not generate unique id")

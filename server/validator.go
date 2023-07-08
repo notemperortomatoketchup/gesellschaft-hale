@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 
+	passwordvalidator "github.com/wagslane/go-password-validator"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
@@ -49,6 +50,16 @@ func assertRangeInt(fieldname string, fieldvalue int, min, max int) error {
 	)
 }
 
+func assertRangeStr(fieldname string, fieldvalue string, min, max int) error {
+	if len(fieldvalue) >= min && len(fieldvalue) <= max {
+		return nil
+	}
+
+	return badRequest(
+		fmt.Errorf("%s: %s (%d-%d)", fieldname, protocol.ErrNotInRange.Error(), min, max),
+	)
+}
+
 func assertNoDuplicate[T comparable](fieldname string, fieldvalue []T) error {
 	seen := make(map[interface{}]bool)
 	for _, v := range fieldvalue {
@@ -58,6 +69,14 @@ func assertNoDuplicate[T comparable](fieldname string, fieldvalue []T) error {
 			)
 		}
 		seen[v] = true
+	}
+
+	return nil
+}
+
+func assertValidPassword(fieldname, password string) error {
+	if err := passwordvalidator.Validate(password, 60); err != nil {
+		return badRequest(fmt.Errorf("%s: %s", fieldname, err.Error()))
 	}
 
 	return nil
@@ -109,5 +128,24 @@ func validateHandleKeyword(r *HandleKeywordRequest) error {
 		return err
 	}
 
+	return nil
+}
+
+func validateHandleRegister(r *HandleRegisterRequest) error {
+	if err := assertRangeStr("username", r.Username, 1, 32); err != nil {
+		return err
+	}
+
+	if err := assertValidPassword("password", r.Password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateHandleLogin(r *handleLoginRequest) error {
+	if err := assertRangeStr("username", r.Username, 1, 32); err != nil {
+		return err
+	}
 	return nil
 }
