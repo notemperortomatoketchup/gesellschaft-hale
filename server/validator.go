@@ -149,3 +149,19 @@ func validateHandleLogin(r *handleLoginRequest) error {
 	}
 	return nil
 }
+
+func validateHandleChangePassword(r *handleChangePasswordRequest) error {
+	if err := assertNotEmptyString("old_password", r.OldPassword); err != nil {
+		return err
+	}
+
+	if err := assertNotEmptyString("new_password", r.OldPassword); err != nil {
+		return err
+	}
+
+	if err := assertValidPassword("new_password", r.NewPassword); err != nil {
+		return err
+	}
+
+	return nil
+}

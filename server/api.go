@@ -48,6 +48,16 @@ func (app *Application) initAPI() {
 	auth.POST("/register", app.handleRegister)
 	auth.POST("/login", app.handleLogin)
 
+	user := e.Group("user")
+	if app.UseJWT {
+		user.Use(echojwt.WithConfig(echojwt.Config{
+			SigningKey:    jwtsecret,
+			SigningMethod: "HS256",
+			TokenLookup:   "header:Token",
+		}))
+	}
+	user.POST("/changepassword", app.handleChangePassword)
+
 	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatal(err)
 	}
@@ -183,9 +193,46 @@ func (app *Application) handleLogin(c echo.Context) error {
 	// got user right, need to generate token jwt
 	token, err := user.generateJWT()
 	if err != nil {
-		fmt.Println("err:", err)
 		return internalError(fmt.Errorf("err generating jwt"))
 	}
 
 	return c.JSON(http.StatusOK, token)
+}
+
+type handleChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+func (app *Application) handleChangePassword(c echo.Context) error {
+	request := new(handleChangePasswordRequest)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	user, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Username:", user.Username)
+
+	if err := validateHandleChangePassword(request); err != nil {
+		return err
+	}
+
+	if err := user.IsPassword(request.OldPassword); err != nil {
+		return badRequest(err)
+	}
+
+	if err := user.SetPassword(request.NewPassword); err != nil {
+		return internalError(protocol.ErrPasswordEncryption)
+	}
+
+	if err := user.Update(); err != nil {
+		return internalError(err)
+	}
+
+	return c.JSON(http.StatusOK, "good")
 }

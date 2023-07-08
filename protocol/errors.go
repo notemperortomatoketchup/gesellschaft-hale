@@ -3,6 +3,8 @@ package protocol
 import "errors"
 
 var (
+	ErrIncorrectPassword      = errors.New("wrong password for your account")
+	ErrNotAuthenticated       = errors.New("your session is not authenticated. (missing token)")
 	ErrInvalidCredentials     = errors.New("could not authenticate with given username / password")
 	ErrPasswordEncryption     = errors.New("error while storing your password, try again")
 	ErrUnknownRequestType     = errors.New("unknown request job type")

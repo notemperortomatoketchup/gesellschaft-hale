@@ -47,11 +47,6 @@ func main() {
 
 	app.startDB()
 
-	var user *User
-	if err := db.DB.From("users").Select("* WHERE username = 'myusername'").Single().Execute(&user); err != nil {
-		log.Fatalf("err: %v", err)
-	}
-
 	s := grpc.NewServer()
 	protocol.RegisterHalerServer(s, &Server{
 		app: app,
