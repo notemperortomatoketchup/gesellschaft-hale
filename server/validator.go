@@ -165,3 +165,15 @@ func validateHandleChangePassword(r *handleChangePasswordRequest) error {
 
 	return nil
 }
+
+func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
+	if err := assertNotEmptyString("title", r.Title); err != nil {
+		return err
+	}
+
+	if err := assertRangeStr("title", r.Title, 3, 128); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -96,3 +96,9 @@ func (app *Application) getKeywordResults(kw string, pages int) ([]*protocol.Web
 
 	return r.GetResult(), nil
 }
+
+func getCurrentTime() string {
+	now := time.Now()
+	postgresTimestamp := now.Format("2006-01-02 15:04:05-07")
+	return postgresTimestamp
+}

@@ -47,6 +47,10 @@ func (app *Application) initAPI() {
 	e := echo.New()
 	e.Use(middleware.CORS())
 
+	auth := e.Group("auth")
+	auth.POST("/register", app.handleRegister)
+	auth.POST("/login", app.handleLogin)
+
 	api := e.Group("api")
 	if app.UseJWT {
 		api.Use(echojwt.WithConfig(echojwt.Config{
@@ -59,18 +63,10 @@ func (app *Application) initAPI() {
 	api.POST("/keyword", app.handleKeyword)
 	api.POST("/keywordmail", app.handleMailsFromKeyword)
 
-	auth := e.Group("auth")
-	auth.POST("/register", app.handleRegister)
-	auth.POST("/login", app.handleLogin)
+	campaigns := api.Group("/campaigns")
+	campaigns.POST("/create", handleCreateCampaign)
 
-	user := e.Group("user")
-	if app.UseJWT {
-		user.Use(echojwt.WithConfig(echojwt.Config{
-			SigningKey:    jwtsecret,
-			SigningMethod: "HS256",
-			TokenLookup:   "header:Token",
-		}))
-	}
+	user := api.Group("/user")
 	user.POST("/changepassword", app.handleChangePassword)
 
 	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
@@ -230,6 +226,38 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 
 	if err := user.Update(); err != nil {
 		return internalError(err)
+	}
+
+	return c.JSON(http.StatusOK, "good")
+}
+
+type handleCreateCampaignRequest struct {
+	Title string `json:"title"`
+}
+
+func handleCreateCampaign(c echo.Context) error {
+	request := new(handleCreateCampaignRequest)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	if err := validateHandleCreateCampaign(request); err != nil {
+		return err
+	}
+
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
+	campaign, err := createCampaign(u.ID, request.Title)
+	if err != nil {
+		return err
+	}
+
+	if err := campaign.Insert(); err != nil {
+		return err
 	}
 
 	return c.JSON(http.StatusOK, "good")
