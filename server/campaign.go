@@ -49,3 +49,31 @@ func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {
 
 	return nil
 }
+
+func saveToCampaign(u *User, id int, websites []*protocol.Website) error {
+	if id != 0 {
+		if err := verifyCampaignOwnership(u, id); err != nil {
+			return err
+		}
+
+		campaign, err := getCampaign(id)
+		if err != nil {
+			return internalError(protocol.ErrCampaignNotFound)
+		}
+
+		campaign.AddWebsites(websites...)
+	}
+
+	return nil
+}
+
+func verifyCampaignOwnership(u *User, campaignID int) error {
+	has, err := u.HasCampaign(campaignID)
+	if err != nil {
+		return internalError(err)
+	}
+	if !has {
+		return internalError(protocol.ErrCampaignUnowned)
+	}
+	return nil
+}

@@ -178,7 +178,7 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 		return err
 	}
 
-	results, err := app.getMailsFromWebsites(scraped)
+	results, err := app.getMailsFromWebsites(scraped, request.Method)
 	if err != nil {
 		return err
 	}

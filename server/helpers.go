@@ -32,19 +32,60 @@ func (app *Application) awaitResults(id uint32) (*protocol.ResponseJobWrapper, e
 	return result, nil
 }
 
-func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol.Website, error) {
-	reqId := protocol.GenerateId()
+func scrapeFilterWebsites(websites []*protocol.Website) ([]*protocol.Website, []*protocol.Website) {
+	var toScrape []*protocol.Website
+	var scraped []*protocol.Website
 
-	var results []*protocol.Website
-	var urlsToScrape []string
+	toScrapeCh := make(chan *protocol.Website, 0)
+	scrapedCh := make(chan *protocol.Website, 0)
 
-	if method == METHOD_FAST {
-		ctx, cancel := context.WithCancel(context.Background())
-		toScrapeCh := make(chan string, 0)
-		scrapedCh := make(chan *protocol.Website, 0)
+	ctx, cancel := context.WithCancel(context.Background())
 
+	go func() {
 		var wg sync.WaitGroup
-		go func() {
+		for _, w := range websites {
+			wg.Add(1)
+			go func(j *protocol.Website) {
+				defer wg.Done()
+				w, err := getWebsite(j.BaseUrl)
+				if err == protocol.ErrWebsiteNotFound {
+					toScrapeCh <- j
+				} else {
+					scrapedCh <- w
+				}
+			}(w)
+		}
+
+		wg.Wait()
+		defer cancel()
+	}()
+
+mainloop:
+	for {
+		select {
+		case <-ctx.Done():
+			break mainloop
+		case website := <-scrapedCh:
+			scraped = append(scraped, website)
+		case website := <-toScrapeCh:
+			toScrape = append(toScrape, website)
+		}
+	}
+
+	return scraped, toScrape
+}
+
+func scrapeFilter(urls []string) ([]*protocol.Website, []string) {
+	var toScrape []string
+	var scraped []*protocol.Website
+
+	ctx, cancel := context.WithCancel(context.Background())
+	toScrapeCh := make(chan string, 0)
+	scrapedCh := make(chan *protocol.Website, 0)
+
+	var wg sync.WaitGroup
+	go func() {
+		if urls != nil {
 			for _, u := range urls {
 				wg.Add(1)
 				go func(j string) {
@@ -57,23 +98,35 @@ func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol
 					}
 				}(u)
 			}
-			wg.Wait()
-			// avoid unnecessary changes below.
-			urls = urlsToScrape
-			defer cancel()
-		}()
-
-	mainloop:
-		for {
-			select {
-			case <-ctx.Done():
-				break mainloop
-			case website := <-scrapedCh:
-				results = append(results, website)
-			case url := <-toScrapeCh:
-				urlsToScrape = append(urlsToScrape, url)
-			}
 		}
+
+		wg.Wait()
+		defer cancel()
+	}()
+
+mainloop:
+	for {
+		select {
+		case <-ctx.Done():
+			break mainloop
+		case website := <-scrapedCh:
+			scraped = append(scraped, website)
+		case url := <-toScrapeCh:
+			toScrape = append(toScrape, url)
+		}
+	}
+
+	return scraped, toScrape
+}
+
+func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol.Website, error) {
+	reqId := protocol.GenerateId()
+
+	var results []*protocol.Website
+
+	if method == METHOD_FAST {
+		// reassign urls so that only unscraped are there.
+		results, urls = scrapeFilter(urls)
 	}
 
 	// if urls is not 0, then even if fast method we still have some to scrape.
@@ -98,35 +151,44 @@ func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol
 		}
 
 		saveWebsites(r.GetResult())
-
 		results = append(results, r.GetResult()...)
 	}
 
 	return results, nil
 }
 
-func (app *Application) getMailsFromWebsites(websites []*protocol.Website) ([]*protocol.Website, error) {
+func (app *Application) getMailsFromWebsites(websites []*protocol.Website, method int) ([]*protocol.Website, error) {
+	var results []*protocol.Website
+	var urls []string
 	reqId := protocol.GenerateId()
-	client, ok := app.GetAvailableClient(int32(len(websites)))
-	if !ok {
-		return nil, internalError(protocol.ErrNoBrowserAvailable)
+
+	if method == METHOD_FAST {
+		results, websites = scrapeFilterWebsites(websites)
 	}
 
-	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId: reqId,
-		ClientId:  client.id,
-		Type:      protocol.MessageType_GET_MAILS_WEBSITES,
-		Websites:  websites,
+	if len(urls) != 0 || method == METHOD_SLOW {
+		client, ok := app.GetAvailableClient(int32(len(websites)))
+		if !ok {
+			return nil, internalError(protocol.ErrNoBrowserAvailable)
+		}
+
+		app.RequestCh <- &protocol.RequestJobWrapper{
+			RequestId: reqId,
+			ClientId:  client.id,
+			Type:      protocol.MessageType_GET_MAILS_WEBSITES,
+			Websites:  websites,
+		}
+
+		r, err := app.awaitResults(reqId)
+		if err != nil {
+			return nil, internalError(err)
+		}
+
+		results = append(results, r.GetResult()...)
+		saveWebsites(r.GetResult())
 	}
 
-	r, err := app.awaitResults(reqId)
-	if err != nil {
-		return nil, internalError(err)
-	}
-
-	saveWebsites(r.GetResult())
-
-	return r.GetResult(), nil
+	return results, nil
 }
 
 func (app *Application) getKeywordResults(kw string, pages int) ([]*protocol.Website, error) {
