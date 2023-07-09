@@ -118,22 +118,30 @@ func (app *Application) handleMails(c echo.Context) error {
 		return err
 	}
 
-	u, err := getUserFromJWT(c)
-	if err != nil {
-		return err
-	}
+	// u, err := getUserFromJWT(c)
+	// if err != nil {
+	// 	return err
+	// }
 
-	// verification of ownership.
-	if request.Campaign.ID != 0 {
-		if err := verifyCampaignOwnership(u, request.Campaign.ID); err != nil {
-			return err
-		}
-	}
+	// // verification of ownership.
+	// if request.Campaign.ID != 0 {
+	// 	if err := verifyCampaignOwnership(u, request.Campaign.ID); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	results, err := app.getMailsFromUrls(request.Urls)
 	if err != nil {
 		return err
 	}
+
+	// for _, r := range results {
+	// 	fmt.Println("we here 2")
+	// 	var results []protocol.Website
+	// 	if err := db.DB.From("websites").Insert(r).Execute(&results); err != nil {
+	// 		log.Printf("failed to save website %s: %v", r.BaseUrl, err)
+	// 	}
+	// }
 
 	response.Websites = results
 

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
@@ -49,9 +47,7 @@ func getUserFromJWT(c echo.Context) (*User, error) {
 		return jwtsecret, nil
 	})
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Printf("claims found: %+v\n", claims)
-	} else {
+	if _, ok := token.Claims.(jwt.MapClaims); !ok || !token.Valid {
 		return nil, internalError(err)
 	}
 
