@@ -3,14 +3,10 @@ package protocol
 import "errors"
 
 var (
-<<<<<<< HEAD
-	ErrCampaignUnowned        = errors.New("you are not the owner of this campaign")
-=======
 	ErrUserNotFound           = errors.New("user not found in database")
 	ErrWebsiteNotFound        = errors.New("website not found in database")
 	ErrCampaignUnowned        = errors.New("you are not the owner of this campaign")
 	ErrCampaignNotFound       = errors.New("campaign not found in database")
->>>>>>> campaign
 	ErrCampaignTitleLen       = errors.New("campaign title must be within 3-128 characters.")
 	ErrIncorrectPassword      = errors.New("wrong password for your account")
 	ErrNotAuthenticated       = errors.New("your session is not authenticated. (missing token)")

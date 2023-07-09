@@ -99,10 +99,6 @@ func (cw *ClientWrapper) smartLaunch(jobs []*Job) ([]*protocol.Website, error) {
 
 			res := b.processQueue(jobs[i:end]...)
 			results.Append(res...)
-<<<<<<< HEAD
-=======
-
->>>>>>> campaign
 		}(i)
 	}
 	wg.Wait()
