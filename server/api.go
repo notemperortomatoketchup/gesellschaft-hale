@@ -112,13 +112,10 @@ func (app *Application) handleMails(c echo.Context) error {
 		return err
 	}
 
-	fmt.Println("urls:", request.Urls)
 	results, err := app.getMailsFromUrls(request.Urls)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("results:", results)
 
 	response.Websites = results
 
