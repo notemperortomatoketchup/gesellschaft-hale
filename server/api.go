@@ -28,6 +28,21 @@ type HandleKeywordResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
 
+type handleLoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type HandleRegisterRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type handleChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
 func (app *Application) initAPI() {
 	e := echo.New()
 	e.Use(middleware.CORS())
@@ -134,11 +149,6 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-type HandleRegisterRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func (app *Application) handleRegister(c echo.Context) error {
 	request := new(HandleRegisterRequest)
 
@@ -162,11 +172,6 @@ func (app *Application) handleRegister(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "good")
-}
-
-type handleLoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
 }
 
 func (app *Application) handleLogin(c echo.Context) error {
@@ -199,11 +204,6 @@ func (app *Application) handleLogin(c echo.Context) error {
 	return c.JSON(http.StatusOK, token)
 }
 
-type handleChangePasswordRequest struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
-}
-
 func (app *Application) handleChangePassword(c echo.Context) error {
 	request := new(handleChangePasswordRequest)
 
@@ -215,8 +215,6 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("Username:", user.Username)
 
 	if err := validateHandleChangePassword(request); err != nil {
 		return err
