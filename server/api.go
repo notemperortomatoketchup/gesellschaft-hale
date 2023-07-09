@@ -275,7 +275,7 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 		return internalError(err)
 	}
 
-	return c.JSON(http.StatusOK, "good")
+	return c.JSON(http.StatusOK, nil)
 }
 
 func (app *Application) handleCreateCampaign(c echo.Context) error {
@@ -303,7 +303,7 @@ func (app *Application) handleCreateCampaign(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, "good")
+	return c.JSON(http.StatusOK, nil)
 }
 
 type handleGetListsCampaignResponse struct {

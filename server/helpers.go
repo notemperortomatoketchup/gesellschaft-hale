@@ -221,34 +221,3 @@ func getCurrentTime() string {
 	postgresTimestamp := now.Format("2006-01-02 15:04:05-07")
 	return postgresTimestamp
 }
-<<<<<<< HEAD
-=======
-
-func verifyCampaignOwnership(u *User, campaignID int) error {
-	has, err := u.HasCampaign(campaignID)
-	if err != nil {
-		return internalError(err)
-	}
-	if !has {
-		return internalError(protocol.ErrCampaignUnowned)
-	}
-	return nil
-}
-
-func saveToCampaign(u *User, id int, websites []*protocol.Website) error {
-	if id != 0 {
-		if err := verifyCampaignOwnership(u, id); err != nil {
-			return err
-		}
-
-		campaign, err := getCampaign(id)
-		if err != nil {
-			return internalError(protocol.ErrCampaignNotFound)
-		}
-
-		campaign.AddWebsites(websites...)
-	}
-
-	return nil
-}
->>>>>>> campaign
