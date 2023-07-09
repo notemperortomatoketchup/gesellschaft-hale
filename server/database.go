@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/nedpals/supabase-go"
@@ -44,6 +45,7 @@ func getCampaign(id int) (*Campaign, error) {
 
 func getWebsite(url string) (*protocol.Website, error) {
 	var results []protocol.Website
+	url = strings.TrimSuffix(url, "/")
 
 	if err := db.DB.From("websites").Select("*").Filter("base_url", "eq", url).Execute(&results); err != nil {
 		return nil, protocol.ErrWebsiteNotFound

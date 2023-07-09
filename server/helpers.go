@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/wotlk888/gesellschaft-hale/protocol"
@@ -30,28 +32,77 @@ func (app *Application) awaitResults(id uint32) (*protocol.ResponseJobWrapper, e
 	return result, nil
 }
 
-func (app *Application) getMailsFromUrls(urls []string) ([]*protocol.Website, error) {
+func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol.Website, error) {
 	reqId := protocol.GenerateId()
-	client, ok := app.GetAvailableClient(int32(len(urls)))
-	if !ok {
-		return nil, internalError(protocol.ErrNoBrowserAvailable)
+
+	var results []*protocol.Website
+	var urlsToScrape []string
+
+	if method == METHOD_FAST {
+		ctx, cancel := context.WithCancel(context.Background())
+		toScrapeCh := make(chan string, 0)
+		scrapedCh := make(chan *protocol.Website, 0)
+
+		var wg sync.WaitGroup
+		go func() {
+			for _, u := range urls {
+				wg.Add(1)
+				go func(j string) {
+					defer wg.Done()
+					w, err := getWebsite(j)
+					if err == protocol.ErrWebsiteNotFound {
+						toScrapeCh <- j
+					} else {
+						scrapedCh <- w
+					}
+				}(u)
+			}
+			wg.Wait()
+			// avoid unnecessary changes below.
+			urls = urlsToScrape
+			defer cancel()
+		}()
+
+	mainloop:
+		for {
+			select {
+			case <-ctx.Done():
+				break mainloop
+			case website := <-scrapedCh:
+				results = append(results, website)
+			case url := <-toScrapeCh:
+				urlsToScrape = append(urlsToScrape, url)
+			}
+		}
 	}
 
-	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId: reqId,
-		ClientId:  client.id,
-		Type:      protocol.MessageType_GET_MAILS_URLS,
-		Urls:      urls,
+	// if urls is not 0, then even if fast method we still have some to scrape.
+	// but if we are in method slow, we just go, no matter what, as above step didn't ran.
+	// we merge urls above so taht we don't have to change the code below, and it runs well in both methods.
+	if len(urls) != 0 || method == METHOD_SLOW {
+		client, ok := app.GetAvailableClient(int32(len(urls)))
+		if !ok {
+			return nil, internalError(protocol.ErrNoBrowserAvailable)
+		}
+
+		app.RequestCh <- &protocol.RequestJobWrapper{
+			RequestId: reqId,
+			ClientId:  client.id,
+			Type:      protocol.MessageType_GET_MAILS_URLS,
+			Urls:      urls,
+		}
+
+		r, err := app.awaitResults(reqId)
+		if err != nil {
+			return nil, internalError(err)
+		}
+
+		saveWebsites(r.GetResult())
+
+		results = append(results, r.GetResult()...)
 	}
 
-	r, err := app.awaitResults(reqId)
-	if err != nil {
-		return nil, internalError(err)
-	}
-
-	saveWebsites(r.GetResult())
-
-	return r.GetResult(), nil
+	return results, nil
 }
 
 func (app *Application) getMailsFromWebsites(websites []*protocol.Website) ([]*protocol.Website, error) {

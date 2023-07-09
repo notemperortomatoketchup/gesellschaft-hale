@@ -13,7 +13,11 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
-// add to campaign? -> which id?
+const (
+	METHOD_SLOW int = iota
+	METHOD_FAST     // will scrape only the one not in db
+)
+
 type CampaignOpts struct {
 	ID int `json:"id"`
 }
@@ -21,7 +25,7 @@ type CampaignOpts struct {
 type HandleGetMailsRequest struct {
 	Urls     []string     `json:"urls"`
 	Campaign CampaignOpts `json:"campaign,omitempty"`
-	Caching  bool         `json:"caching,omitempty"`
+	Method   int          `json:"method,omitempty"`
 }
 
 type HandleGetMailsResponse struct {
@@ -32,7 +36,7 @@ type HandleKeywordRequest struct {
 	Keyword  string       `json:"keyword"`
 	Pages    int          `json:"pages"`
 	Campaign CampaignOpts `json:"campaign,omitempty"`
-	Caching  bool         `json:"caching,omitempty"`
+	Method   int          `json:"method,omitempty"`
 }
 
 type HandleKeywordResponse struct {
@@ -138,7 +142,7 @@ func (app *Application) handleMails(c echo.Context) error {
 		return err
 	}
 
-	results, err := app.getMailsFromUrls(request.Urls)
+	results, err := app.getMailsFromUrls(request.Urls, request.Method)
 	if err != nil {
 		return err
 	}
