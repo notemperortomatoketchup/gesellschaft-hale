@@ -52,7 +52,7 @@ func getUserFromJWT(c echo.Context) (*User, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		fmt.Printf("claims found: %+v\n", claims)
 	} else {
-		return nil, err
+		return nil, internalError(err)
 	}
 
 	user, err := getUser(claims["username"].(string))

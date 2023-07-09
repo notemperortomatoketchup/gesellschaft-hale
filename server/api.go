@@ -11,8 +11,14 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
+// add to campaign? -> which id?
+type CampaignOpts struct {
+	ID int `json:"id"`
+}
+
 type HandleGetMailsRequest struct {
-	Urls []string `json:"urls"`
+	Urls     []string     `json:"urls"`
+	Campaign CampaignOpts `json:"campaign,omitempty"`
 }
 
 type HandleGetMailsResponse struct {
@@ -41,6 +47,10 @@ type HandleRegisterRequest struct {
 type handleChangePasswordRequest struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
+}
+
+type handleCreateCampaignRequest struct {
+	Title string `json:"title"`
 }
 
 func (app *Application) initAPI() {
@@ -106,6 +116,18 @@ func (app *Application) handleMails(c echo.Context) error {
 
 	if err := validateHandleMails(request); err != nil {
 		return err
+	}
+
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
+	// verification of ownership.
+	if request.Campaign.ID != 0 {
+		if err := verifyCampaignOwnership(u, request.Campaign.ID); err != nil {
+			return err
+		}
 	}
 
 	results, err := app.getMailsFromUrls(request.Urls)
@@ -229,10 +251,6 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "good")
-}
-
-type handleCreateCampaignRequest struct {
-	Title string `json:"title"`
 }
 
 func handleCreateCampaign(c echo.Context) error {

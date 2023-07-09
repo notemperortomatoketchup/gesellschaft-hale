@@ -102,3 +102,14 @@ func getCurrentTime() string {
 	postgresTimestamp := now.Format("2006-01-02 15:04:05-07")
 	return postgresTimestamp
 }
+
+func verifyCampaignOwnership(u *User, campaignID int) error {
+	has, err := u.HasCampaign(campaignID)
+	if err != nil {
+		return internalError(err)
+	}
+	if !has {
+		return internalError(protocol.ErrCampaignUnowned)
+	}
+	return nil
+}
