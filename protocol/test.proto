@@ -49,16 +49,12 @@ message Website {
 	repeated string paths = 2;
 	string title = 3;
 	string description = 4;
-	repeated string matched_words = 5;
-	CountryInfo country = 6; 
+	repeated string language = 5;
+	repeated string region = 6;
 	repeated string mails = 7;
 	bool timeout = 8;
   }
   
-message CountryInfo {
-	repeated string language = 1;
-	repeated string region = 2;
-}
 
 message Empty {}
 

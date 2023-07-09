@@ -49,6 +49,8 @@ func (app *Application) getMailsFromUrls(urls []string) ([]*protocol.Website, er
 		return nil, internalError(err)
 	}
 
+	saveWebsites(r.GetResult())
+
 	return r.GetResult(), nil
 }
 
@@ -70,6 +72,8 @@ func (app *Application) getMailsFromWebsites(websites []*protocol.Website) ([]*p
 	if err != nil {
 		return nil, internalError(err)
 	}
+
+	saveWebsites(r.GetResult())
 
 	return r.GetResult(), nil
 }
@@ -94,6 +98,8 @@ func (app *Application) getKeywordResults(kw string, pages int) ([]*protocol.Web
 		return nil, internalError(err)
 	}
 
+	saveWebsites(r.GetResult())
+
 	return r.GetResult(), nil
 }
 
@@ -111,5 +117,22 @@ func verifyCampaignOwnership(u *User, campaignID int) error {
 	if !has {
 		return internalError(protocol.ErrCampaignUnowned)
 	}
+	return nil
+}
+
+func saveToCampaign(u *User, id int, websites []*protocol.Website) error {
+	if id != 0 {
+		if err := verifyCampaignOwnership(u, id); err != nil {
+			return err
+		}
+
+		campaign, err := getCampaign(id)
+		if err != nil {
+			return internalError(protocol.ErrCampaignNotFound)
+		}
+
+		campaign.AddWebsites(websites...)
+	}
+
 	return nil
 }

@@ -87,14 +87,12 @@ func (e *Engine) scrapeKeyword(kw string, pages int) ([]*protocol.Website, error
 				seen.Store(base, true)
 
 				results.Append(&protocol.Website{
-					BaseUrl:      base,
-					Title:        w.Title,
-					Description:  w.Snippet,
-					MatchedWords: w.MatchedWords,
-					Country: &protocol.CountryInfo{
-						Language: w.Related.Language,
-						Region:   w.Related.Region,
-					},
+					BaseUrl:     base,
+					Title:       w.Title,
+					Description: w.Snippet,
+					Language:    w.Related.Language,
+					Region:      w.Related.Region,
+					Timeout:     false,
 				})
 			}
 		}(i)

@@ -26,8 +26,9 @@ type HandleGetMailsResponse struct {
 }
 
 type HandleKeywordRequest struct {
-	Keyword string `json:"keyword"`
-	Pages   int    `json:"pages"`
+	Keyword  string       `json:"keyword"`
+	Pages    int          `json:"pages"`
+	Campaign CampaignOpts `json:"campaign,omitempty"`
 }
 
 type HandleKeywordResponse struct {
@@ -96,9 +97,18 @@ func (app *Application) handleKeyword(c echo.Context) error {
 		return err
 	}
 
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
 	results, err := app.getKeywordResults(request.Keyword, request.Pages)
 	if err != nil {
 		return err
+	}
+
+	if request.Campaign.ID != 0 {
+		saveToCampaign(u, request.Campaign.ID, results)
 	}
 
 	response.Websites = results
@@ -118,30 +128,19 @@ func (app *Application) handleMails(c echo.Context) error {
 		return err
 	}
 
-	// u, err := getUserFromJWT(c)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // verification of ownership.
-	// if request.Campaign.ID != 0 {
-	// 	if err := verifyCampaignOwnership(u, request.Campaign.ID); err != nil {
-	// 		return err
-	// 	}
-	// }
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
 
 	results, err := app.getMailsFromUrls(request.Urls)
 	if err != nil {
 		return err
 	}
 
-	// for _, r := range results {
-	// 	fmt.Println("we here 2")
-	// 	var results []protocol.Website
-	// 	if err := db.DB.From("websites").Insert(r).Execute(&results); err != nil {
-	// 		log.Printf("failed to save website %s: %v", r.BaseUrl, err)
-	// 	}
-	// }
+	if request.Campaign.ID != 0 {
+		saveToCampaign(u, request.Campaign.ID, results)
+	}
 
 	response.Websites = results
 
@@ -160,6 +159,11 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 		return err
 	}
 
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
 	scraped, err := app.getKeywordResults(request.Keyword, request.Pages)
 	if err != nil {
 		return err
@@ -168,6 +172,10 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 	results, err := app.getMailsFromWebsites(scraped)
 	if err != nil {
 		return err
+	}
+
+	if request.Campaign.ID != 0 {
+		saveToCampaign(u, request.Campaign.ID, results)
 	}
 
 	response.Websites = results

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"sync"
 
 	"github.com/nedpals/supabase-go"
+	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
 var db *supabase.Client
@@ -21,4 +24,30 @@ func getUser(username string) (*User, error) {
 	}
 
 	return &user[0], nil
+}
+
+func getCampaign(id int) (*Campaign, error) {
+	var campaign []Campaign
+	if err := db.DB.From("campaigns").Select("*").Eq("campaign_id", fmt.Sprint(id)).Execute(&campaign); err != nil {
+		return nil, protocol.ErrCampaignNotFound
+	}
+
+	return &campaign[0], nil
+}
+
+func saveWebsites(websites []*protocol.Website) {
+	var wg sync.WaitGroup
+
+	for _, w := range websites {
+		wg.Add(1)
+		go func(wb *protocol.Website) {
+			var results []protocol.Website
+			if err := db.DB.From("websites").Insert(&wb).Execute(&results); err != nil {
+				log.Printf("failed to save %s: %v", wb.BaseUrl, err)
+			}
+			defer wg.Done()
+		}(w)
+	}
+
+	wg.Wait()
 }

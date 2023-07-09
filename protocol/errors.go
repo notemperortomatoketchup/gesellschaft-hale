@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrCampaignUnowned        = errors.New("you are not the owner of this campaign")
+	ErrCampaignNotFound       = errors.New("campaign with id not found")
 	ErrCampaignTitleLen       = errors.New("campaign title must be within 3-128 characters.")
 	ErrIncorrectPassword      = errors.New("wrong password for your account")
 	ErrNotAuthenticated       = errors.New("your session is not authenticated. (missing token)")
