@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -67,4 +69,17 @@ func (u *User) IsPassword(raw string) error {
 		return protocol.ErrIncorrectPassword
 	}
 	return nil
+}
+
+func (u *User) HasCampaign(id int) (bool, error) {
+	var campaigns []Campaign
+
+	if err := db.DB.From("campaigns").Select().Eq("owner_id", fmt.Sprint(u.ID)).Eq("campaign_id", fmt.Sprint(id)).Execute(&campaigns); err != nil {
+		return false, err
+	}
+	if len(campaigns) == 0 {
+		return false, protocol.ErrCampaignUnowned
+	}
+
+	return true, nil
 }
