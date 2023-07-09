@@ -74,7 +74,6 @@ func saveWebsites(websites []*protocol.Website) {
 					log.Printf("failed to update %s: %v", wb.BaseUrl, err)
 				}
 			}
-
 			defer wg.Done()
 		}(w)
 	}

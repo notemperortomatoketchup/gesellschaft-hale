@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
@@ -77,7 +79,8 @@ func (app *Application) initAPI() {
 	api.POST("/keywordmail", app.handleMailsFromKeyword)
 
 	campaigns := api.Group("/campaigns")
-	campaigns.POST("/create", handleCreateCampaign)
+	campaigns.POST("/create", app.handleCreateCampaign)
+	campaigns.POST("/results", app.handleGetResultsCampaign)
 
 	user := api.Group("/user")
 	user.POST("/changepassword", app.handleChangePassword)
@@ -271,7 +274,7 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 	return c.JSON(http.StatusOK, "good")
 }
 
-func handleCreateCampaign(c echo.Context) error {
+func (app *Application) handleCreateCampaign(c echo.Context) error {
 	request := new(handleCreateCampaignRequest)
 
 	if err := bind(c, request); err != nil {
@@ -297,4 +300,63 @@ func handleCreateCampaign(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "good")
+}
+
+type handleGetListsCampaignResponse struct {
+	Websites []*protocol.Website `json:"data"`
+}
+
+func (app *Application) handleGetResultsCampaign(c echo.Context) error {
+	request := new(CampaignOpts)
+	response := new(handleGetListsCampaignResponse)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	if err := validateHandleGetListsCampaign(request); err != nil {
+		return err
+	}
+
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
+	if err := verifyCampaignOwnership(u, request.ID); err != nil {
+		return err
+	}
+
+	campaign, err := getCampaign(request.ID)
+	if err != nil {
+		return err
+	}
+
+	websitesCh := make(chan *protocol.Website, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	// go func so we can select, and channel prevent raec condition for writing as blocking
+	go func() {
+		var wg sync.WaitGroup
+		for _, url := range campaign.Websites {
+			wg.Add(1)
+			go func(w string) {
+				defer wg.Done()
+				website, _ := getWebsite(w)
+				websitesCh <- website
+			}(url)
+		}
+		wg.Wait()
+		cancel()
+	}()
+mainloop:
+	for {
+		select {
+		case <-ctx.Done():
+			break mainloop
+		case w := <-websitesCh:
+			response.Websites = append(response.Websites, w)
+		}
+	}
+
+	return c.JSON(http.StatusOK, response)
 }

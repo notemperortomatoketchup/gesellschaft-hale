@@ -132,6 +132,13 @@ func validateHandleKeyword(r *HandleKeywordRequest) error {
 }
 
 func validateHandleRegister(r *HandleRegisterRequest) error {
+	if err := assertType("username", r.Username, "string"); err != nil {
+		return err
+	}
+	if err := assertType("password", r.Password, "string"); err != nil {
+		return err
+	}
+
 	if err := assertRangeStr("username", r.Username, 1, 32); err != nil {
 		return err
 	}
@@ -144,6 +151,10 @@ func validateHandleRegister(r *HandleRegisterRequest) error {
 }
 
 func validateHandleLogin(r *handleLoginRequest) error {
+	if err := assertType("username", r.Username, "string"); err != nil {
+		return err
+	}
+
 	if err := assertRangeStr("username", r.Username, 1, 32); err != nil {
 		return err
 	}
@@ -151,6 +162,14 @@ func validateHandleLogin(r *handleLoginRequest) error {
 }
 
 func validateHandleChangePassword(r *handleChangePasswordRequest) error {
+	if err := assertType("old_password", r.OldPassword, "string"); err != nil {
+		return err
+	}
+
+	if err := assertType("new_password", r.NewPassword, "string"); err != nil {
+		return err
+	}
+
 	if err := assertNotEmptyString("old_password", r.OldPassword); err != nil {
 		return err
 	}
@@ -167,11 +186,23 @@ func validateHandleChangePassword(r *handleChangePasswordRequest) error {
 }
 
 func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
+	if err := assertType("title", r.Title, "string"); err != nil {
+		return err
+	}
+
 	if err := assertNotEmptyString("title", r.Title); err != nil {
 		return err
 	}
 
 	if err := assertRangeStr("title", r.Title, 3, 128); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateHandleGetListsCampaign(r *CampaignOpts) error {
+	if err := assertType("id", r.ID, "int"); err != nil {
 		return err
 	}
 
