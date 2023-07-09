@@ -19,6 +19,7 @@ type CampaignOpts struct {
 type HandleGetMailsRequest struct {
 	Urls     []string     `json:"urls"`
 	Campaign CampaignOpts `json:"campaign,omitempty"`
+	Caching  bool         `json:"caching,omitempty"`
 }
 
 type HandleGetMailsResponse struct {
@@ -29,6 +30,7 @@ type HandleKeywordRequest struct {
 	Keyword  string       `json:"keyword"`
 	Pages    int          `json:"pages"`
 	Campaign CampaignOpts `json:"campaign,omitempty"`
+	Caching  bool         `json:"caching,omitempty"`
 }
 
 type HandleKeywordResponse struct {
