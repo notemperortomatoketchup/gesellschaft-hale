@@ -63,9 +63,18 @@ func saveWebsites(websites []*protocol.Website) {
 		wg.Add(1)
 		go func(wb *protocol.Website) {
 			var results []protocol.Website
-			if err := db.DB.From("websites").Insert(&wb).Execute(&results); err != nil {
-				log.Printf("failed to save %s: %v", wb.BaseUrl, err)
+			found, _ := getWebsite(wb.BaseUrl)
+			// update or insert if not found
+			if found == nil {
+				if err := db.DB.From("websites").Insert(&wb).Execute(&results); err != nil {
+					log.Printf("failed to save %s: %v", wb.BaseUrl, err)
+				}
+			} else {
+				if err := db.DB.From("websites").Update(&wb).Filter("base_url", "eq", wb.BaseUrl).Execute(&results); err != nil {
+					log.Printf("failed to update %s: %v", wb.BaseUrl, err)
+				}
 			}
+
 			defer wg.Done()
 		}(w)
 	}
