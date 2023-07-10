@@ -8,28 +8,15 @@ import (
 )
 
 const (
-	ROLE_USER Role = iota
+	ROLE_USER int = iota
 	ROLE_ADMIN
 )
-
-type Role int
 
 type User struct {
 	ID             int    `json:"id,omitempty"`
 	Username       string `json:"username"`
 	HashedPassword string `json:"hashed_password"`
 	Role           int    `json:"role"`
-}
-
-func (r Role) String() string {
-	switch r {
-	case ROLE_USER:
-		return "User"
-	case ROLE_ADMIN:
-		return "Admin"
-	default:
-		return "Unknown"
-	}
 }
 
 func (u *User) SetUsername(username string) {

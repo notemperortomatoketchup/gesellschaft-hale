@@ -226,7 +226,23 @@ func validateHandleID(r *handleIDRequest) error {
 		return err
 	}
 
-	if err := assertNotEmpty("test", r.ID); err != nil {
+	return nil
+}
+
+func verifyHandleEditCampaign(r *handleEditCampaignRequest) error {
+	if err := assertType("id", r.ID, "*uint"); err != nil {
+		return err
+	}
+
+	if err := assertType("title", r.Title, "string"); err != nil {
+		return err
+	}
+
+	if err := assertNotEmpty("title", r.ID); err != nil {
+		return err
+	}
+
+	if err := assertRangeStr("title", r.Title, 3, 128); err != nil {
 		return err
 	}
 

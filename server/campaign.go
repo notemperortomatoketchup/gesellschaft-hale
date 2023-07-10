@@ -41,8 +41,21 @@ func (c *Campaign) Delete() error {
 	if err := db.DB.From("campaigns").Delete().Eq("campaign_id", fmt.Sprint(c.ID)).Execute(&results); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (c *Campaign) Update() error {
+	var results []Campaign
+
+	if err := db.DB.From("campaigns").Update(&c).Eq("campaign_id", fmt.Sprint(c.ID)).Execute(&results); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func (c *Campaign) SetTitle(title string) {
+	c.Title = title
 }
 
 func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {

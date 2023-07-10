@@ -92,9 +92,11 @@ func (app *Application) initAPI() {
 	api.POST("/keywordmail", app.handleMailsFromKeyword)
 
 	campaigns := api.Group("/campaigns")
+	campaigns.Use(verifyOwnershipMiddleware)
 	campaigns.POST("/create", app.handleCreateCampaign)
 	campaigns.POST("/results", app.handleGetResultsCampaign)
 	campaigns.POST("/delete", app.handleDeleteCampaign)
+	campaigns.POST("/edit", app.handleEditCampaign)
 
 	user := api.Group("/user")
 	user.POST("/changepassword", app.handleChangePassword)
@@ -313,7 +315,7 @@ func (app *Application) handleCreateCampaign(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusOK, "created")
 }
 
 type handleGetListsCampaignResponse struct {
@@ -329,15 +331,6 @@ func (app *Application) handleGetResultsCampaign(c echo.Context) error {
 	}
 
 	if err := validateHandleGetListsCampaign(request); err != nil {
-		return err
-	}
-
-	u, err := getUserFromJWT(c)
-	if err != nil {
-		return err
-	}
-
-	if err := verifyCampaignOwnership(u, *request.ID); err != nil {
 		return err
 	}
 
@@ -386,15 +379,6 @@ func (app *Application) handleDeleteCampaign(c echo.Context) error {
 		return err
 	}
 
-	u, err := getUserFromJWT(c)
-	if err != nil {
-		return err
-	}
-
-	if err := verifyCampaignOwnership(u, *request.ID); err != nil {
-		return err
-	}
-
 	campaign, err := getCampaign(*request.ID)
 	if err != nil {
 		return err
@@ -405,4 +389,29 @@ func (app *Application) handleDeleteCampaign(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "deleted")
+}
+
+func (app *Application) handleEditCampaign(c echo.Context) error {
+	request := new(handleEditCampaignRequest)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	if err := verifyHandleEditCampaign(request); err != nil {
+		return err
+	}
+
+	campaign, err := getCampaign(*request.ID)
+	if err != nil {
+		return err
+	}
+
+	campaign.SetTitle(request.Title)
+	if err := campaign.Update(); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, "edited")
+
 }
