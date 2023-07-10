@@ -336,7 +336,7 @@ func (app *Application) handleGetResultsCampaign(c echo.Context) error {
 
 	campaign, err := getCampaign(*request.ID)
 	if err != nil {
-		return err
+		return badRequest(err)
 	}
 
 	websitesCh := make(chan *protocol.Website, 0)

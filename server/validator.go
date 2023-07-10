@@ -213,7 +213,7 @@ func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
 }
 
 func validateHandleGetListsCampaign(r *CampaignOpts) error {
-	if err := assertType("id", r.ID, "int"); err != nil {
+	if err := assertType("id", r.ID, "*uint"); err != nil {
 		return err
 	}
 
@@ -238,7 +238,7 @@ func verifyHandleEditCampaign(r *handleEditCampaignRequest) error {
 		return err
 	}
 
-	if err := assertNotEmpty("title", r.ID); err != nil {
+	if err := assertNotEmpty("title", r.Title); err != nil {
 		return err
 	}
 
