@@ -30,7 +30,7 @@ func getUser(username string) (*User, error) {
 	return nil, protocol.ErrUserNotFound
 }
 
-func getCampaign(id int) (*Campaign, error) {
+func getCampaign(id uint) (*Campaign, error) {
 	var campaign []Campaign
 	if err := db.DB.From("campaigns").Select("*").Eq("campaign_id", fmt.Sprint(id)).Execute(&campaign); err != nil {
 		return nil, protocol.ErrCampaignNotFound

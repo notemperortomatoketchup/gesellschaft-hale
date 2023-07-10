@@ -18,8 +18,12 @@ const (
 	METHOD_FAST     // will scrape only the one not in db
 )
 
+type handleIDRequest struct {
+	ID *uint `json:"id"`
+}
+
 type CampaignOpts struct {
-	ID int `json:"id"`
+	ID *uint `json:"id"`
 }
 
 type HandleGetMailsRequest struct {
@@ -62,6 +66,11 @@ type handleCreateCampaignRequest struct {
 	Title string `json:"title"`
 }
 
+type handleEditCampaignRequest struct {
+	ID    *uint  `json:"id"`
+	Title string `json:"title"`
+}
+
 func (app *Application) initAPI() {
 	e := echo.New()
 	e.Use(middleware.CORS())
@@ -85,6 +94,7 @@ func (app *Application) initAPI() {
 	campaigns := api.Group("/campaigns")
 	campaigns.POST("/create", app.handleCreateCampaign)
 	campaigns.POST("/results", app.handleGetResultsCampaign)
+	campaigns.POST("/delete", app.handleDeleteCampaign)
 
 	user := api.Group("/user")
 	user.POST("/changepassword", app.handleChangePassword)
@@ -116,8 +126,8 @@ func (app *Application) handleKeyword(c echo.Context) error {
 		return err
 	}
 
-	if request.Campaign.ID != 0 {
-		saveToCampaign(u, request.Campaign.ID, results)
+	if request.Campaign.ID != nil {
+		saveToCampaign(u, *request.Campaign.ID, results)
 	}
 
 	response.Websites = results
@@ -147,8 +157,8 @@ func (app *Application) handleMails(c echo.Context) error {
 		return err
 	}
 
-	if request.Campaign.ID != 0 {
-		saveToCampaign(u, request.Campaign.ID, results)
+	if request.Campaign.ID != nil {
+		saveToCampaign(u, *request.Campaign.ID, results)
 	}
 
 	response.Websites = results
@@ -183,8 +193,8 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 		return err
 	}
 
-	if request.Campaign.ID != 0 {
-		saveToCampaign(u, request.Campaign.ID, results)
+	if request.Campaign.ID != nil {
+		saveToCampaign(u, *request.Campaign.ID, results)
 	}
 
 	response.Websites = results
@@ -327,11 +337,11 @@ func (app *Application) handleGetResultsCampaign(c echo.Context) error {
 		return err
 	}
 
-	if err := verifyCampaignOwnership(u, request.ID); err != nil {
+	if err := verifyCampaignOwnership(u, *request.ID); err != nil {
 		return err
 	}
 
-	campaign, err := getCampaign(request.ID)
+	campaign, err := getCampaign(*request.ID)
 	if err != nil {
 		return err
 	}
@@ -363,4 +373,36 @@ mainloop:
 	}
 
 	return c.JSON(http.StatusOK, response)
+}
+
+func (app *Application) handleDeleteCampaign(c echo.Context) error {
+	request := new(handleIDRequest)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	if err := validateHandleID(request); err != nil {
+		return err
+	}
+
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
+
+	if err := verifyCampaignOwnership(u, *request.ID); err != nil {
+		return err
+	}
+
+	campaign, err := getCampaign(*request.ID)
+	if err != nil {
+		return err
+	}
+
+	if err := campaign.Delete(); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, "deleted")
 }

@@ -36,6 +36,15 @@ func (c *Campaign) Insert() error {
 	return nil
 }
 
+func (c *Campaign) Delete() error {
+	var results []any
+	if err := db.DB.From("campaigns").Delete().Eq("campaign_id", fmt.Sprint(c.ID)).Execute(&results); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {
 	for _, w := range websites {
 		// cleaning duplicates
@@ -50,7 +59,7 @@ func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {
 	return nil
 }
 
-func saveToCampaign(u *User, id int, websites []*protocol.Website) error {
+func saveToCampaign(u *User, id uint, websites []*protocol.Website) error {
 	if id != 0 {
 		if err := verifyCampaignOwnership(u, id); err != nil {
 			return err
@@ -67,7 +76,7 @@ func saveToCampaign(u *User, id int, websites []*protocol.Website) error {
 	return nil
 }
 
-func verifyCampaignOwnership(u *User, campaignID int) error {
+func verifyCampaignOwnership(u *User, campaignID uint) error {
 	has, err := u.HasCampaign(campaignID)
 	if err != nil {
 		return internalError(err)

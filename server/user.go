@@ -71,7 +71,7 @@ func (u *User) IsPassword(raw string) error {
 	return nil
 }
 
-func (u *User) HasCampaign(id int) (bool, error) {
+func (u *User) HasCampaign(id uint) (bool, error) {
 	var campaigns []Campaign
 
 	if err := db.DB.From("campaigns").Select().Eq("owner_id", fmt.Sprint(u.ID)).Eq("campaign_id", fmt.Sprint(id)).Execute(&campaigns); err != nil {

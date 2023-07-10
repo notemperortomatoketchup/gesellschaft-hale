@@ -27,15 +27,26 @@ func assertType(fieldname string, fieldvalue any, expected string) error {
 	return nil
 }
 
-func assertNotEmptySlice[T comparable](fieldname string, fieldvalue []T) error {
-	if len(fieldvalue) == 0 {
-		return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
+func assertNotEmpty(fieldname string, fieldvalue any) error {
+	typeStr := reflect.TypeOf(fieldvalue).String()
+	// we type insert so that we can use == nil, len..
+
+	switch typeStr {
+	case "string":
+		if fieldvalue == "" {
+			return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
+		}
+	case "*uint":
+		if fieldvalue.(*uint) == nil {
+			return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
+		}
 	}
+
 	return nil
 }
 
-func assertNotEmptyString(fieldname string, fieldvalue string) error {
-	if fieldvalue == "" {
+func assertNotEmptySlice[T comparable](fieldname string, fieldvalue []T) error {
+	if len(fieldvalue) == 0 {
 		return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
 	}
 	return nil
@@ -112,7 +123,7 @@ func validateHandleMails(r *HandleGetMailsRequest) error {
 }
 
 func validateHandleKeyword(r *HandleKeywordRequest) error {
-	if err := assertNotEmptyString("keyword", r.Keyword); err != nil {
+	if err := assertNotEmpty("keyword", r.Keyword); err != nil {
 		return err
 	}
 
@@ -170,11 +181,11 @@ func validateHandleChangePassword(r *handleChangePasswordRequest) error {
 		return err
 	}
 
-	if err := assertNotEmptyString("old_password", r.OldPassword); err != nil {
+	if err := assertNotEmpty("old_password", r.OldPassword); err != nil {
 		return err
 	}
 
-	if err := assertNotEmptyString("new_password", r.OldPassword); err != nil {
+	if err := assertNotEmpty("new_password", r.OldPassword); err != nil {
 		return err
 	}
 
@@ -190,7 +201,7 @@ func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
 		return err
 	}
 
-	if err := assertNotEmptyString("title", r.Title); err != nil {
+	if err := assertNotEmpty("title", r.Title); err != nil {
 		return err
 	}
 
@@ -203,6 +214,19 @@ func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
 
 func validateHandleGetListsCampaign(r *CampaignOpts) error {
 	if err := assertType("id", r.ID, "int"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// generic handler that only needs an id to work with, was getting many
+func validateHandleID(r *handleIDRequest) error {
+	if err := assertType("id", r.ID, "*uint"); err != nil {
+		return err
+	}
+
+	if err := assertNotEmpty("test", r.ID); err != nil {
 		return err
 	}
 
