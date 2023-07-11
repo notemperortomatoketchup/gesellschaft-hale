@@ -3,8 +3,10 @@ package protocol
 import "errors"
 
 var (
+	ErrInvalidID              = errors.New("specify a correct id. (integer)")
 	ErrUserNotFound           = errors.New("user not found in database")
 	ErrWebsiteNotFound        = errors.New("website not found in database")
+	ErrCampaignEmpty          = errors.New("this campaign has no result")
 	ErrCampaignUnowned        = errors.New("you are not the owner of this campaign")
 	ErrCampaignNotFound       = errors.New("campaign not found in database")
 	ErrCampaignTitleLen       = errors.New("campaign title must be within 3-128 characters.")

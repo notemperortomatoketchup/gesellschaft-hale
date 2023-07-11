@@ -15,7 +15,7 @@ func (app *Application) initServer() {
 	for range time.Tick(2 * time.Second) {
 		list := app.GetClientsList()
 		var clients []Client
-		// dereference
+
 		for _, c := range list {
 			clients = append(clients, *c)
 		}

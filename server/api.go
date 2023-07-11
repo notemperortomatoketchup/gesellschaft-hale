@@ -14,13 +14,9 @@ import (
 )
 
 const (
-	METHOD_SLOW int = iota
-	METHOD_FAST     // will scrape only the one not in db
+	METHOD_FAST int = iota
+	METHOD_SLOW
 )
-
-type handleIDRequest struct {
-	ID *uint `json:"id"`
-}
 
 type CampaignOpts struct {
 	ID *uint `json:"id"`
@@ -67,8 +63,11 @@ type handleCreateCampaignRequest struct {
 }
 
 type handleEditCampaignRequest struct {
-	ID    *uint  `json:"id"`
 	Title string `json:"title"`
+}
+
+type HandleDeleteResultsCampaignRequest struct {
+	Urls []string `json:"urls"`
 }
 
 func (app *Application) initAPI() {
@@ -94,9 +93,10 @@ func (app *Application) initAPI() {
 	campaigns := api.Group("/campaigns")
 	campaigns.Use(verifyOwnershipMiddleware)
 	campaigns.POST("/create", app.handleCreateCampaign)
-	campaigns.POST("/results", app.handleGetResultsCampaign)
-	campaigns.POST("/delete", app.handleDeleteCampaign)
-	campaigns.POST("/edit", app.handleEditCampaign)
+	campaigns.DELETE("/delete/:id", app.handleDeleteCampaign)
+	campaigns.PATCH("/edit/:id", app.handleEditCampaign)
+	campaigns.GET("/results/:id", app.handleGetResultsCampaign)
+	campaigns.DELETE("/results/:id", app.handleDeleteResultsCampaign)
 
 	user := api.Group("/user")
 	user.POST("/changepassword", app.handleChangePassword)
@@ -323,20 +323,16 @@ type handleGetListsCampaignResponse struct {
 }
 
 func (app *Application) handleGetResultsCampaign(c echo.Context) error {
-	request := new(CampaignOpts)
+	cc := c.(*CustomContext)
 	response := new(handleGetListsCampaignResponse)
 
-	if err := bind(c, request); err != nil {
-		return err
-	}
-
-	if err := validateHandleGetListsCampaign(request); err != nil {
-		return err
-	}
-
-	campaign, err := getCampaign(*request.ID)
+	campaign, err := getCampaign(cc.GetID())
 	if err != nil {
 		return badRequest(err)
+	}
+
+	if len(campaign.Websites) == 0 {
+		return badRequest(protocol.ErrCampaignEmpty)
 	}
 
 	websitesCh := make(chan *protocol.Website, 0)
@@ -369,17 +365,9 @@ mainloop:
 }
 
 func (app *Application) handleDeleteCampaign(c echo.Context) error {
-	request := new(handleIDRequest)
+	cc := c.(*CustomContext)
 
-	if err := bind(c, request); err != nil {
-		return err
-	}
-
-	if err := validateHandleID(request); err != nil {
-		return err
-	}
-
-	campaign, err := getCampaign(*request.ID)
+	campaign, err := getCampaign(cc.GetID())
 	if err != nil {
 		return err
 	}
@@ -392,6 +380,7 @@ func (app *Application) handleDeleteCampaign(c echo.Context) error {
 }
 
 func (app *Application) handleEditCampaign(c echo.Context) error {
+	cc := c.(*CustomContext)
 	request := new(handleEditCampaignRequest)
 
 	if err := bind(c, request); err != nil {
@@ -402,7 +391,7 @@ func (app *Application) handleEditCampaign(c echo.Context) error {
 		return err
 	}
 
-	campaign, err := getCampaign(*request.ID)
+	campaign, err := getCampaign(cc.GetID())
 	if err != nil {
 		return err
 	}
@@ -414,4 +403,49 @@ func (app *Application) handleEditCampaign(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, "edited")
 
+}
+
+func handleDeleteFromCampaign(c echo.Context) error {
+	cc := c.(*CustomContext)
+
+	campaign, err := getCampaign(cc.GetID())
+	if err != nil {
+		return badRequest(err)
+	}
+
+	if err := campaign.Delete(); err != nil {
+		return internalError(err)
+	}
+
+	return c.JSON(http.StatusNoContent, "deleted entry")
+}
+
+func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
+	cc := c.(*CustomContext)
+	request := new(HandleDeleteResultsCampaignRequest)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	if err := validateHandleDeleteResultsCampaign(request); err != nil {
+		return err
+	}
+
+	campaign, err := getCampaign(cc.GetID())
+	if err != nil {
+		return badRequest(err)
+	}
+
+	for _, w := range campaign.Websites {
+		if protocol.IsExists(request.Urls, w) {
+			campaign.Websites = protocol.RemoveStrFromSlice(campaign.Websites, w)
+		}
+	}
+
+	if err := campaign.Update(); err != nil {
+		return internalError(err)
+	}
+
+	return c.JSON(http.StatusOK, "deleted entries from result")
 }

@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
@@ -220,4 +226,37 @@ func getCurrentTime() string {
 	now := time.Now()
 	postgresTimestamp := now.Format("2006-01-02 15:04:05-07")
 	return postgresTimestamp
+}
+
+func getIDFromCtx(c *CustomContext) (uint, error) {
+	param := c.Param("id")
+	id, err := strconv.ParseUint(param, 10, 32)
+	if err != nil {
+		return 0, badRequest(protocol.ErrInvalidID)
+	}
+
+	c.SetID(uint(id))
+
+	return uint(id), nil
+}
+func bindWithoutDelete(c echo.Context, v any) error {
+	var bodyBytes []byte
+	bodyBytes, _ = ioutil.ReadAll(c.Request().Body)
+	// write back to request body
+	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	err := json.Unmarshal(bodyBytes, v) // must be a ptr, v
+	if err != nil {
+		return badRequest(fmt.Errorf("error reading body, missing id"))
+	}
+	return nil
+}
+
+func isUserAdmin(c echo.Context) (bool, error) {
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return false, badRequest(protocol.ErrUserNotFound)
+	}
+
+	return u.Role == ROLE_ADMIN, nil
 }

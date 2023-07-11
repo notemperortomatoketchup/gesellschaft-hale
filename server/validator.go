@@ -212,27 +212,7 @@ func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
 	return nil
 }
 
-func validateHandleGetListsCampaign(r *CampaignOpts) error {
-	if err := assertType("id", r.ID, "*uint"); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// generic handler that only needs an id to work with, was getting many
-func validateHandleID(r *handleIDRequest) error {
-	if err := assertType("id", r.ID, "*uint"); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func verifyHandleEditCampaign(r *handleEditCampaignRequest) error {
-	if err := assertType("id", r.ID, "*uint"); err != nil {
-		return err
-	}
 
 	if err := assertType("title", r.Title, "string"); err != nil {
 		return err
@@ -243,6 +223,18 @@ func verifyHandleEditCampaign(r *handleEditCampaignRequest) error {
 	}
 
 	if err := assertRangeStr("title", r.Title, 3, 128); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateHandleDeleteResultsCampaign(r *HandleDeleteResultsCampaignRequest) error {
+	if err := assertNotEmptySlice("urls", r.Urls); err != nil {
+		return err
+	}
+
+	if err := assertValidUrls("urls", r.Urls...); err != nil {
 		return err
 	}
 
