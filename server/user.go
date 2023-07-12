@@ -19,8 +19,9 @@ type User struct {
 	Role           int    `json:"role"`
 }
 
-func (u *User) SetUsername(username string) {
+func (u *User) SetUsername(username string) *User {
 	u.Username = username
+	return u
 }
 
 func (u *User) SetPassword(password string) error {

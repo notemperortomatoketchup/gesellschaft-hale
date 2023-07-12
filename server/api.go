@@ -107,6 +107,7 @@ func (app *Application) initAPI() {
 	// management of users, admin only
 	users := api.Group("/users")
 	users.Use(adminMiddleware)
+	users.POST("/create", app.handleCreateUser)
 	users.GET("/get", app.handleGetAllUsers)
 	users.GET("/get/:id", app.handleGetUser)
 	users.DELETE("/delete/:id", app.handleDeleteUser)
@@ -237,7 +238,7 @@ func (app *Application) handleRegister(c echo.Context) error {
 		return internalError(err)
 	}
 
-	return c.JSON(http.StatusOK, "good")
+	return c.JSON(http.StatusCreated, "registered")
 }
 
 func (app *Application) handleLogin(c echo.Context) error {
@@ -536,9 +537,37 @@ func (app *Application) handleEditUser(c echo.Context) error {
 	}
 
 	if err := u.Update(); err != nil {
-		fmt.Println("error here")
 		return err
 	}
 
 	return c.JSON(http.StatusOK, "edited")
+}
+
+type CreateUserRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (app *Application) handleCreateUser(c echo.Context) error {
+	request := new(CreateUserRequest)
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	if err := validateCreateUser(request); err != nil {
+		return err
+	}
+
+	user := new(User)
+
+	if err := user.SetUsername(request.Username).SetPassword(request.Password); err != nil {
+		return err
+	}
+
+	if err := user.Insert(); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, "created")
 }

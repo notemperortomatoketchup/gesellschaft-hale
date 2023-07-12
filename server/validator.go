@@ -150,7 +150,7 @@ func validateHandleRegister(r *RegisterRequest) error {
 		return err
 	}
 
-	if err := assertRangeStr("username", r.Username, 1, 32); err != nil {
+	if err := assertRangeStr("username", r.Username, 3, 32); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func validateHandleLogin(r *LoginRequest) error {
 		return err
 	}
 
-	if err := assertRangeStr("username", r.Username, 1, 32); err != nil {
+	if err := assertRangeStr("username", r.Username, 3, 32); err != nil {
 		return err
 	}
 	return nil
@@ -239,4 +239,24 @@ func validateHandleDeleteResultsCampaign(r *DeleteResultsCampaignRequest) error 
 	}
 
 	return nil
+}
+
+func validateCreateUser(r *CreateUserRequest) error {
+	if err := assertType("username", r.Username, "string"); err != nil {
+		return err
+	}
+
+	if err := assertType("password", r.Password, "string"); err != nil {
+		return err
+	}
+
+	if err := assertValidPassword("password", r.Password); err != nil {
+		return err
+	}
+
+	if err := assertRangeStr("username", r.Username, 3, 32); err != nil {
+		return err
+	}
+	return nil
+
 }
