@@ -51,7 +51,7 @@ func getUserFromJWT(c echo.Context) (*User, error) {
 		return nil, internalError(err)
 	}
 
-	user, err := getUser(claims["username"].(string))
+	user, err := getUserByID(uint(claims["id"].(float64)))
 	if err != nil {
 		return nil, internalError(err)
 	}

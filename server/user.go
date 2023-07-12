@@ -13,7 +13,7 @@ const (
 )
 
 type User struct {
-	ID             int    `json:"id,omitempty"`
+	ID             *uint  `json:"id,omitempty"`
 	Username       string `json:"username"`
 	HashedPassword string `json:"hashed_password"`
 	Role           int    `json:"role"`
@@ -44,10 +44,19 @@ func (u *User) Insert() error {
 
 func (u *User) Update() error {
 	var results []User
-	if err := db.DB.From("users").Update(&u).Eq("username", u.Username).Execute(&results); err != nil {
+	if err := db.DB.From("users").Update(&u).Eq("id", fmt.Sprint(*u.ID)).Execute(&results); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (u *User) Delete() error {
+	var results []any
+	if err := db.DB.From("users").Delete().Eq("id", fmt.Sprint(*u.ID)).Execute(&results); err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (u *User) IsPassword(raw string) error {

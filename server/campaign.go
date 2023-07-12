@@ -8,14 +8,14 @@ import (
 )
 
 type Campaign struct {
-	ID        int      `json:"campaign_id,omitempty"`
-	OwnerID   int      `json:"owner_id"`
+	ID        uint     `json:"campaign_id,omitempty"`
+	OwnerID   uint     `json:"owner_id"`
 	Title     string   `json:"title"`
 	CreatedAt string   `json:"created_at"`
 	Websites  []string `json:"websites"` // array of websites db base_url reference
 }
 
-func createCampaign(ownerID int, title string) (*Campaign, error) {
+func createCampaign(ownerID uint, title string) (*Campaign, error) {
 	if len(title) < 3 || len(title) > 128 {
 		return nil, protocol.ErrCampaignTitleLen
 	}

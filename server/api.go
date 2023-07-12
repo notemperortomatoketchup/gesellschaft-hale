@@ -105,9 +105,12 @@ func (app *Application) initAPI() {
 	account.PATCH("/password/reset", app.handleResetPassword)
 
 	// management of users, admin only
-	user := api.Group("/user")
-	user.Use(adminMiddleware)
-	user.GET("/user/:id", app.handleGetUser)
+	users := api.Group("/users")
+	users.Use(adminMiddleware)
+	users.GET("/get", app.handleGetAllUsers)
+	users.GET("/get/:id", app.handleGetUser)
+	users.DELETE("/delete/:id", app.handleDeleteUser)
+	users.PATCH("/edit/:id", app.handleEditUser)
 
 	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatal(err)
@@ -249,7 +252,7 @@ func (app *Application) handleLogin(c echo.Context) error {
 	}
 
 	// pull user from db
-	user, err := getUser(request.Username)
+	user, err := getUserByUsername(request.Username)
 	if err != nil {
 		return internalError(err)
 	}
@@ -338,7 +341,7 @@ func (app *Application) handleCreateCampaign(c echo.Context) error {
 		return err
 	}
 
-	campaign, err := createCampaign(u.ID, request.Title)
+	campaign, err := createCampaign(*u.ID, request.Title)
 	if err != nil {
 		return err
 	}
@@ -475,6 +478,67 @@ func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
 }
 
 func (app *Application) handleGetUser(c echo.Context) error {
+	cc := c.(*CustomContext)
+	id := cc.GetID()
 
-	return nil
+	u, err := getUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, u)
+}
+
+func (app *Application) handleGetAllUsers(c echo.Context) error {
+	users, err := getAllUsers()
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, users)
+}
+
+func (app *Application) handleDeleteUser(c echo.Context) error {
+	cc := c.(*CustomContext)
+	id := cc.GetID()
+
+	u, err := getUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	if err := u.Delete(); err != nil {
+		return internalError(err)
+	}
+	return c.JSON(http.StatusNoContent, "")
+}
+
+type EditUserRequest struct {
+	Username string `json:"username"`
+}
+
+func (app *Application) handleEditUser(c echo.Context) error {
+	request := new(EditUserRequest)
+	cc := c.(*CustomContext)
+	id := cc.GetID()
+
+	if err := bind(c, request); err != nil {
+		return err
+	}
+
+	u, err := getUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	if request.Username != "" {
+		u.SetUsername(request.Username)
+	}
+
+	if err := u.Update(); err != nil {
+		fmt.Println("error here")
+		return err
+	}
+
+	return c.JSON(http.StatusOK, "edited")
 }

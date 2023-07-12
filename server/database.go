@@ -17,7 +17,7 @@ func (app *Application) startDB() {
 	log.Println("spinned up supabase client")
 }
 
-func getUser(username string) (*User, error) {
+func getUserByUsername(username string) (*User, error) {
 	var user []User
 	if err := db.DB.From("users").Select("*").Eq("username", username).Execute(&user); err != nil {
 		return nil, err
@@ -41,6 +41,15 @@ func getUserByID(id uint) (*User, error) {
 	}
 
 	return nil, protocol.ErrUserNotFound
+}
+
+func getAllUsers() ([]User, error) {
+	var users []User
+	if err := db.DB.From("users").Select("*").Execute(&users); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func getCampaign(id uint) (*Campaign, error) {
