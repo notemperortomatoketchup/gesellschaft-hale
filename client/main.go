@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -57,6 +58,7 @@ func main() {
 	app.startEngine()
 
 	app.initClient()
+	fmt.Println(app.Client.cfg)
 
 	defer app.Client.Conn.Close()
 	defer app.Client.Client.HandleExit(context.Background(), &protocol.ExitRequest{
@@ -73,8 +75,8 @@ func (app *Application) loadConfig() {
 	flag.Parse()
 
 	viper.AddConfigPath("./")
-	viper.SetConfigFile("config.json")
-	viper.SetConfigType("json")
+	viper.SetConfigFile("config.yaml")
+	viper.SetConfigType("yaml")
 	viper.ReadInConfig()
 
 	app.Client.cfg.core.domain = viper.GetString("core.domain")
