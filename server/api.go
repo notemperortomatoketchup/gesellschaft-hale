@@ -10,6 +10,7 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/sethvargo/go-password/password"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
@@ -98,8 +99,15 @@ func (app *Application) initAPI() {
 	campaigns.GET("/results/:id", app.handleGetResultsCampaign)
 	campaigns.DELETE("/results/:id", app.handleDeleteResultsCampaign)
 
+	account := api.Group("/account")
+	account.Use(verifyUserMiddleware)
+	account.PATCH("/password/change", app.handleChangePassword)
+	account.PATCH("/password/reset", app.handleResetPassword)
+
+	// management of users, admin only
 	user := api.Group("/user")
-	user.POST("/changepassword", app.handleChangePassword)
+	user.Use(adminMiddleware)
+	user.GET("/user/:id", app.handleGetUser)
 
 	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatal(err)
@@ -259,17 +267,41 @@ func (app *Application) handleLogin(c echo.Context) error {
 	return c.JSON(http.StatusOK, token)
 }
 
+func (app *Application) handleResetPassword(c echo.Context) error {
+	cc := c.(*CustomContext)
+	response := struct {
+		Password string `json:"password"`
+	}{}
+
+	user := cc.getUser()
+
+	pass, err := password.Generate(24, 10, 10, false, false)
+	if err != nil {
+		return internalError(fmt.Errorf("error generating the random password"))
+	}
+
+	if err := user.SetPassword(pass); err != nil {
+		return internalError(protocol.ErrPasswordEncryption)
+	}
+
+	if err := user.Update(); err != nil {
+		return internalError(err)
+	}
+
+	response.Password = pass
+
+	return c.JSON(http.StatusOK, response)
+
+}
 func (app *Application) handleChangePassword(c echo.Context) error {
 	request := new(ChangePasswordRequest)
+	cc := c.(*CustomContext)
 
 	if err := bind(c, request); err != nil {
 		return err
 	}
 
-	user, err := getUserFromJWT(c)
-	if err != nil {
-		return err
-	}
+	user := cc.getUser()
 
 	if err := validateHandleChangePassword(request); err != nil {
 		return err
@@ -287,7 +319,7 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 		return internalError(err)
 	}
 
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusOK, "edited password")
 }
 
 func (app *Application) handleCreateCampaign(c echo.Context) error {
@@ -440,4 +472,9 @@ func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "deleted entries from result")
+}
+
+func (app *Application) handleGetUser(c echo.Context) error {
+
+	return nil
 }

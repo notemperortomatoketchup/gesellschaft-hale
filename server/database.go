@@ -30,6 +30,19 @@ func getUser(username string) (*User, error) {
 	return nil, protocol.ErrUserNotFound
 }
 
+func getUserByID(id uint) (*User, error) {
+	var user []User
+	if err := db.DB.From("users").Select("*").Eq("id", fmt.Sprint(id)).Execute(&user); err != nil {
+		return nil, err
+	}
+
+	if len(user) != 0 {
+		return &user[0], nil
+	}
+
+	return nil, protocol.ErrUserNotFound
+}
+
 func getCampaign(id uint) (*Campaign, error) {
 	var campaign []Campaign
 	if err := db.DB.From("campaigns").Select("*").Eq("campaign_id", fmt.Sprint(id)).Execute(&campaign); err != nil {
