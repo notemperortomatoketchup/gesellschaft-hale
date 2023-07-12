@@ -177,7 +177,7 @@ func (cw *ClientWrapper) handleJobGetMailWebsite(j *protocol.RequestJobWrapper) 
 }
 
 func (cw *ClientWrapper) handleJobGetKeyword(j *protocol.RequestJobWrapper) {
-	results, err := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()))
+	results, err := cw.engine.scrapeKeyword(j.GetKeyword(), int(j.GetPagesCount()), j.GoogleDomain)
 	if err != nil {
 		cw.handleJobError(j, err)
 		return

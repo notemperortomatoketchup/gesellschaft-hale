@@ -195,19 +195,24 @@ func (app *Application) getMailsFromWebsites(websites []*protocol.Website, metho
 	return results, nil
 }
 
-func (app *Application) getKeywordResults(kw string, pages int) ([]*protocol.Website, error) {
+func (app *Application) getKeywordResults(kw string, pages int, domain string) ([]*protocol.Website, error) {
 	reqId := protocol.GenerateId()
 	client, ok := app.GetAvailableClient(0)
 	if !ok {
 		return nil, internalError(protocol.ErrNoBrowserAvailable)
 	}
 
+	if domain == "" {
+		domain = "google.fr"
+	}
+
 	app.RequestCh <- &protocol.RequestJobWrapper{
-		RequestId:  reqId,
-		Type:       protocol.MessageType_GET_KEYWORD,
-		ClientId:   client.id,
-		Keyword:    kw,
-		PagesCount: int32(pages),
+		RequestId:    reqId,
+		Type:         protocol.MessageType_GET_KEYWORD,
+		ClientId:     client.id,
+		Keyword:      kw,
+		PagesCount:   int32(pages),
+		GoogleDomain: domain,
 	}
 
 	r, err := app.awaitResults(reqId)
@@ -257,12 +262,3 @@ func getIDInLocals(c *fiber.Ctx) (uint, bool) {
 
 	return *id, true
 }
-
-// func isUserAdmin(c echo.Context) (bool, error) {
-// 	u, err := getUserFromJWT(c)
-// 	if err != nil {
-// 		return false, badRequest(protocol.ErrUserNotFound)
-// 	}
-
-// 	return u.Role == ROLE_ADMIN, nil
-// }

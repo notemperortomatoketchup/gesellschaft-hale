@@ -48,13 +48,42 @@ func (app *Application) startEngine() {
 	}
 }
 
-func (e *Engine) scrapeKeyword(kw string, pages int) ([]*protocol.Website, error) {
+func (e *Engine) buildLangageBaseLink(domain string) string {
+	var gl, hl string
+
+	switch domain {
+	case "google.fr":
+		gl = "fr"
+		hl = "fr"
+	case "google.us":
+		gl = "us"
+		hl = "en"
+	case "google.es":
+		gl = "es"
+		hl = "es"
+	case "google.uk":
+		gl = "uk"
+		hl = "en"
+	default:
+		domain = "google.fr"
+		gl = "fr"
+		hl = "fr"
+	}
+
+	return e.baseLink + "domain_google=" + domain + "&gl=" + gl + "&hl=" + hl + "&"
+
+}
+
+func (e *Engine) scrapeKeyword(kw string, pages int, domain string) ([]*protocol.Website, error) {
 	if pages == 0 {
 		pages = 1
 	}
 
+	langageBaseLink := e.buildLangageBaseLink(domain)
 	kw = strings.ReplaceAll(kw, " ", "+") // for send http
 	results := new(Results)
+
+	fmt.Println(langageBaseLink)
 
 	var seen sync.Map
 	var wg sync.WaitGroup
@@ -64,7 +93,7 @@ func (e *Engine) scrapeKeyword(kw string, pages int) ([]*protocol.Website, error
 		go func(i int) {
 			defer wg.Done()
 			res := new(ScrapeKeywordResp)
-			url := e.baseLink + "q=" + kw + "&start=" + fmt.Sprintf("%d", i*10)
+			url := langageBaseLink + "q=" + kw + "&start=" + fmt.Sprintf("%d", i*10)
 
 			resp, err := http.Get(url)
 			if err != nil {

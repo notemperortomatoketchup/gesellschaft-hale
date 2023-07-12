@@ -26,6 +26,10 @@ type MethodOpts struct {
 	Method int `json:"method,omitempty" validate:"oneof=0 1"`
 }
 
+type DomainOpts struct {
+	Domain string `json:"domain" validate:"omitempty,startswith=google,contains=."`
+}
+
 type TitleRequest struct {
 	Title string `json:"title" validate:"required,min=3,max=32"`
 }
@@ -48,6 +52,7 @@ type KeywordRequest struct {
 	Pages   int    `json:"pages" validate:"required,number,min=1,max=20"`
 	MethodOpts
 	Campaign CampaignOpts `json:"campaign,omitempty" validate:"-"`
+	DomainOpts
 }
 
 type AuthRequest struct {
@@ -77,7 +82,7 @@ func (app *Application) handleKeyword(c *fiber.Ctx) error {
 		return err
 	}
 
-	results, err := app.getKeywordResults(request.Keyword, request.Pages)
+	results, err := app.getKeywordResults(request.Keyword, request.Pages, request.Domain)
 	if err != nil {
 		return err
 	}
@@ -139,12 +144,13 @@ func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 		return err
 	}
 
-	scraped, err := app.getKeywordResults(request.Keyword, request.Pages)
+	scraped, err := app.getKeywordResults(request.Keyword, request.Pages, request.Domain)
 	if err != nil {
 		return err
 	}
 
 	results, err := app.getMailsFromWebsites(scraped, request.Method)
+
 	if err != nil {
 		return err
 	}
