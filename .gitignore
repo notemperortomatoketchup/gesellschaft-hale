@@ -19,7 +19,6 @@
 
 # Go workspace file
 go.work
-Dockerfile.client
-Dockerfile.server
+Dockerfile.*
 /protocol 
 config.yaml
