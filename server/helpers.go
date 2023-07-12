@@ -1,17 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
@@ -228,35 +226,43 @@ func getCurrentTime() string {
 	return postgresTimestamp
 }
 
-func getIDFromCtx(c *CustomContext) (uint, error) {
-	param := c.Param("id")
-	id, err := strconv.ParseUint(param, 10, 32)
-	if err != nil {
-		return 0, badRequest(protocol.ErrInvalidID)
+func storeIDInLocals(c *fiber.Ctx, x string) {
+	// due to how we pull the id, it might not be an integer
+	if x == "" {
+		c.Locals("id", nil)
+		return
 	}
 
-	c.SetID(uint(id))
-
-	return uint(id), nil
-}
-func bindWithoutDelete(c echo.Context, v any) error {
-	var bodyBytes []byte
-	bodyBytes, _ = ioutil.ReadAll(c.Request().Body)
-	// write back to request body
-	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	err := json.Unmarshal(bodyBytes, v) // must be a ptr, v
+	id64, err := strconv.ParseUint(x, 10, 32)
 	if err != nil {
-		return badRequest(fmt.Errorf("error reading body, missing id"))
-	}
-	return nil
-}
-
-func isUserAdmin(c echo.Context) (bool, error) {
-	u, err := getUserFromJWT(c)
-	if err != nil {
-		return false, badRequest(protocol.ErrUserNotFound)
+		c.Locals("id", nil)
+		return
 	}
 
-	return u.Role == ROLE_ADMIN, nil
+	fmt.Println("Reached storage")
+	id := uint(id64)
+
+	c.Locals("id", &id)
 }
+
+func getIDInLocals(c *fiber.Ctx) (uint, bool) {
+	// use * for nil, to not trigger with 0, but return uint for convenience of usage
+	param := c.Locals("id")
+
+	if rv := reflect.ValueOf(param); !rv.IsValid() || rv.IsNil() {
+		return 0, false
+	} // its not nil, so we can say it's *uint for sure, as we store that.
+
+	id := param.(*uint)
+
+	return *id, true
+}
+
+// func isUserAdmin(c echo.Context) (bool, error) {
+// 	u, err := getUserFromJWT(c)
+// 	if err != nil {
+// 		return false, badRequest(protocol.ErrUserNotFound)
+// 	}
+
+// 	return u.Role == ROLE_ADMIN, nil
+// }

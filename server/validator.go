@@ -1,262 +1,67 @@
 package main
 
 import (
-	"fmt"
-	"reflect"
 	"regexp"
 
-	passwordvalidator "github.com/wagslane/go-password-validator"
-	"github.com/wotlk888/gesellschaft-hale/protocol"
+	"gopkg.in/go-playground/validator.v9"
 )
 
-func assertType(fieldname string, fieldvalue any, expected string) error {
-	got := reflect.TypeOf(fieldvalue).String()
+var validate *validator.Validate
+var urlRegex = `\bhttps?:\/\/(?:www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})(?:\/\S*)?\b`
 
-	if got != expected {
-		return badRequest(
-			fmt.Errorf(
-				"%s: %s (expected: %s, got: %s)",
-				fieldname,
-				protocol.ErrNotValidType.Error(),
-				expected,
-				got,
-			),
-		)
-	}
-
-	return nil
+type ErrorResponse struct {
+	FailedField string `json:"field"`
+	Hint        string `json:"hint"`
 }
 
-func assertNotEmpty(fieldname string, fieldvalue any) error {
-	typeStr := reflect.TypeOf(fieldvalue).String()
-	// we type insert so that we can use == nil, len..
-
-	switch typeStr {
-	case "string":
-		if fieldvalue == "" {
-			return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
-		}
-	case "*uint":
-		if fieldvalue.(*uint) == nil {
-			return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
-		}
-	}
-
-	return nil
+func (app *Application) initValidator() {
+	validate = validator.New()
+	validate.RegisterValidation("urls", validateUrl)
 }
 
-func assertNotEmptySlice[T comparable](fieldname string, fieldvalue []T) error {
-	if len(fieldvalue) == 0 {
-		return badRequest(fmt.Errorf("%s: %s", fieldname, protocol.ErrEmpty.Error()))
-	}
-	return nil
-}
+func validateUrl(fl validator.FieldLevel) bool {
+	urls := fl.Field().Interface().([]string)
+	regex := regexp.MustCompile(urlRegex)
 
-func assertRangeInt(fieldname string, fieldvalue int, min, max int) error {
-	if fieldvalue >= min && fieldvalue <= max {
-		return nil
-	}
-	return badRequest(
-		fmt.Errorf("%s: %s (%d-%d)", fieldname, protocol.ErrNotInRange.Error(), min, max),
-	)
-}
-
-func assertRangeStr(fieldname string, fieldvalue string, min, max int) error {
-	if len(fieldvalue) >= min && len(fieldvalue) <= max {
-		return nil
-	}
-
-	return badRequest(
-		fmt.Errorf("%s: %s (%d-%d)", fieldname, protocol.ErrNotInRange.Error(), min, max),
-	)
-}
-
-func assertNoDuplicate[T comparable](fieldname string, fieldvalue []T) error {
-	seen := make(map[interface{}]bool)
-	for _, v := range fieldvalue {
-		if _, ok := seen[v]; ok {
-			return badRequest(
-				fmt.Errorf("%s: %s (%s)", fieldname, protocol.ErrNoDuplicate.Error(), fmt.Sprint(v)),
-			)
-		}
-		seen[v] = true
-	}
-
-	return nil
-}
-
-func assertValidPassword(fieldname, password string) error {
-	if err := passwordvalidator.Validate(password, 60); err != nil {
-		return badRequest(fmt.Errorf("%s: %s", fieldname, err.Error()))
-	}
-
-	return nil
-}
-
-func assertValidUrls(fieldname string, urls ...string) error {
-	re := regexp.MustCompile(`\bhttps?:\/\/(?:www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})(?:\/\S*)?\b`)
-	var invalids []string
 	for _, u := range urls {
-		if ok := re.MatchString(u); !ok {
-			invalids = protocol.AppendUnique(invalids, u)
+		if ok := regex.MatchString(u); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func ValidateStruct(v any) []*ErrorResponse {
+	var errors []*ErrorResponse
+
+	err := validate.Struct(v)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			msg := makeValidatonErrorMsg(err)
+			errors = append(errors, &msg)
 		}
 	}
 
-	if len(invalids) != 0 {
-		return badRequest(
-			fmt.Errorf("%s: %s (%v)", fieldname, protocol.ErrNotValidUrls.Error(), invalids),
-		)
-	}
-	return nil
+	return errors
 }
 
-func validateHandleMails(r *GetMailsRequest) error {
-	if err := assertNotEmptySlice("urls", r.Urls); err != nil {
-		return err
+func makeValidatonErrorMsg(err validator.FieldError) ErrorResponse {
+	var response ErrorResponse
+
+	response.FailedField = err.Field()
+
+	switch err.Tag() {
+	case "urls":
+		response.Hint = "one of the urls has wrong format"
+	case "oneof":
+		response.Hint = "must be within the following values"
+	default:
+		response.Hint = err.Tag()
 	}
 
-	if err := assertValidUrls("urls", r.Urls...); err != nil {
-		return err
+	if err.Param() != "" {
+		response.Hint += " -> " + err.Param()
 	}
 
-	return nil
-}
-
-func validateHandleKeyword(r *KeywordRequest) error {
-	if err := assertNotEmpty("keyword", r.Keyword); err != nil {
-		return err
-	}
-
-	if err := assertType("keyword", r.Keyword, "string"); err != nil {
-		return err
-	}
-
-	if err := assertType("pages", r.Pages, "int"); err != nil {
-		return err
-	}
-
-	if err := assertRangeInt("pages", r.Pages, 1, 30); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateHandleRegister(r *RegisterRequest) error {
-	if err := assertType("username", r.Username, "string"); err != nil {
-		return err
-	}
-	if err := assertType("password", r.Password, "string"); err != nil {
-		return err
-	}
-
-	if err := assertRangeStr("username", r.Username, 3, 32); err != nil {
-		return err
-	}
-
-	if err := assertValidPassword("password", r.Password); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateHandleLogin(r *LoginRequest) error {
-	if err := assertType("username", r.Username, "string"); err != nil {
-		return err
-	}
-
-	if err := assertRangeStr("username", r.Username, 3, 32); err != nil {
-		return err
-	}
-	return nil
-}
-
-func validateHandleChangePassword(r *ChangePasswordRequest) error {
-	if err := assertType("old_password", r.OldPassword, "string"); err != nil {
-		return err
-	}
-
-	if err := assertType("new_password", r.NewPassword, "string"); err != nil {
-		return err
-	}
-
-	if err := assertNotEmpty("old_password", r.OldPassword); err != nil {
-		return err
-	}
-
-	if err := assertNotEmpty("new_password", r.OldPassword); err != nil {
-		return err
-	}
-
-	if err := assertValidPassword("new_password", r.NewPassword); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateHandleCreateCampaign(r *CreateCampaignRequest) error {
-	if err := assertType("title", r.Title, "string"); err != nil {
-		return err
-	}
-
-	if err := assertNotEmpty("title", r.Title); err != nil {
-		return err
-	}
-
-	if err := assertRangeStr("title", r.Title, 3, 128); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func verifyHandleEditCampaign(r *EditCampaignRequest) error {
-
-	if err := assertType("title", r.Title, "string"); err != nil {
-		return err
-	}
-
-	if err := assertNotEmpty("title", r.Title); err != nil {
-		return err
-	}
-
-	if err := assertRangeStr("title", r.Title, 3, 128); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateHandleDeleteResultsCampaign(r *DeleteResultsCampaignRequest) error {
-	if err := assertNotEmptySlice("urls", r.Urls); err != nil {
-		return err
-	}
-
-	if err := assertValidUrls("urls", r.Urls...); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateCreateUser(r *CreateUserRequest) error {
-	if err := assertType("username", r.Username, "string"); err != nil {
-		return err
-	}
-
-	if err := assertType("password", r.Password, "string"); err != nil {
-		return err
-	}
-
-	if err := assertValidPassword("password", r.Password); err != nil {
-		return err
-	}
-
-	if err := assertRangeStr("username", r.Username, 3, 32); err != nil {
-		return err
-	}
-	return nil
-
+	return response
 }

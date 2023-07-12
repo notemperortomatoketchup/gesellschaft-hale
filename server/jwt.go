@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/golang-jwt/jwt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
@@ -34,27 +35,15 @@ func verifyJWT(c echo.Context) error {
 	return nil
 }
 
-func getUserFromJWT(c echo.Context) (*User, error) {
+func getUserFromJWT(c *fiber.Ctx) (*User, error) {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	id := uint(claims["id"].(float64))
 
-	tokenStr := c.Request().Header.Get("Token")
-	if tokenStr == "" {
-		return nil, internalError(protocol.ErrNotAuthenticated)
-	}
-
-	claims := jwt.MapClaims{}
-
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-		return jwtsecret, nil
-	})
-
-	if _, ok := token.Claims.(jwt.MapClaims); !ok || !token.Valid {
-		return nil, internalError(err)
-	}
-
-	user, err := getUserByID(uint(claims["id"].(float64)))
+	u, err := getUserByID(id)
 	if err != nil {
 		return nil, internalError(err)
 	}
 
-	return user, nil
+	return u, nil
 }

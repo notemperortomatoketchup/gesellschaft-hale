@@ -5,44 +5,61 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 )
 
 func validateBindError(err error) error {
 	error := strings.Split(err.Error(), " ")
-	var expected, got, field string
 
-	for _, w := range error {
-		if strings.Contains(w, "expected=") {
-			expected = strings.TrimSuffix(strings.Split(w, "=")[1], ",")
+	got := error[3]
+	expected := error[11]
+	field := error[8]
+
+	// it outputs structName.field -> I remove structName, only return the json field name.
+	structNameIndex := strings.IndexFunc(field, func(r rune) bool {
+		if r == '.' {
+			return true
 		}
+		return false
+	})
+	field = field[structNameIndex+1:]
 
-		if strings.Contains(w, "got=") {
-			got = strings.TrimSuffix(strings.Split(w, "=")[1], ",")
-
-		}
-
-		if strings.Contains(w, "field=") {
-			field = strings.TrimSuffix(strings.Split(w, "=")[1], ",")
-		}
-	}
-	return badRequest(fmt.Errorf("invalid type at %s. (got: %s | want: %s)", field, got, expected))
+	return badRequest(fmt.Errorf("invalid type at %s (got: %s | want: %s)", field, got, expected))
 }
 
-func bind(c echo.Context, i any) error {
-	if err := c.Bind(&i); err != nil {
+func bind(c *fiber.Ctx, i any) []*ErrorResponse {
+	var errors []*ErrorResponse
+
+	if err := c.BodyParser(i); err != nil {
 		if strings.Contains(err.Error(), "unmarshal") {
-			return validateBindError(err)
+			bindErr := validateBindError(err)
+			errors = append(errors, &ErrorResponse{
+				FailedField: "binding",
+				Hint:        bindErr.Error(),
+			})
 		}
-		return badRequest(err)
 	}
+
+	structErrs := ValidateStruct(i)
+	if structErrs != nil {
+		errors = append(errors, structErrs...)
+	}
+
+	if errors != nil {
+		return errors
+	}
+
 	return nil
 }
 
 func badRequest(msg error) error {
-	return echo.NewHTTPError(http.StatusBadRequest, msg.Error())
+	return fiber.NewError(http.StatusBadRequest, msg.Error())
 }
 
 func internalError(msg error) error {
-	return echo.NewHTTPError(http.StatusInternalServerError, msg.Error())
+	return fiber.NewError(http.StatusInternalServerError, msg.Error())
+}
+
+func validationError(c *fiber.Ctx, v any) error {
+	return c.Status(fiber.StatusBadRequest).JSON(v)
 }

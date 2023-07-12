@@ -46,6 +46,7 @@ func main() {
 	}
 
 	app.startDB()
+	app.initValidator()
 
 	s := grpc.NewServer()
 	protocol.RegisterHalerServer(s, &Server{

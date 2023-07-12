@@ -71,9 +71,10 @@ func (u *User) IsPassword(raw string) error {
 func (u *User) HasCampaign(id uint) (bool, error) {
 	var campaigns []Campaign
 
-	if err := db.DB.From("campaigns").Select().Eq("owner_id", fmt.Sprint(u.ID)).Eq("campaign_id", fmt.Sprint(id)).Execute(&campaigns); err != nil {
+	if err := db.DB.From("campaigns").Select().Eq("owner_id", fmt.Sprint(*u.ID)).Eq("campaign_id", fmt.Sprint(id)).Execute(&campaigns); err != nil {
 		return false, err
 	}
+
 	if len(campaigns) == 0 {
 		return false, protocol.ErrCampaignUnowned
 	}

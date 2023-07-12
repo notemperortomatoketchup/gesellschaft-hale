@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"sync"
 
-	echojwt "github.com/labstack/echo-jwt/v4"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	jwtware "github.com/gofiber/contrib/jwt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+
 	"github.com/sethvargo/go-password/password"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
@@ -19,14 +19,17 @@ const (
 	METHOD_SLOW
 )
 
+type Message struct {
+	Message string `json:"message"`
+}
 type CampaignOpts struct {
-	ID *uint `json:"id"`
+	ID *uint `json:"id" validate:"number"`
 }
 
 type GetMailsRequest struct {
-	Urls     []string     `json:"urls"`
-	Campaign CampaignOpts `json:"campaign,omitempty"`
-	Method   int          `json:"method,omitempty"`
+	Urls     []string     `json:"urls" validate:"required,min=1,urls"`
+	Method   int          `json:"method,omitempty" validate:"oneof=0 1"`
+	Campaign CampaignOpts `json:"campaign,omitempty" validate:"-"`
 }
 
 type GetMailsResponse struct {
@@ -34,100 +37,96 @@ type GetMailsResponse struct {
 }
 
 type KeywordRequest struct {
-	Keyword  string       `json:"keyword"`
-	Pages    int          `json:"pages"`
-	Campaign CampaignOpts `json:"campaign,omitempty"`
-	Method   int          `json:"method,omitempty"`
+	Keyword  string       `json:"keyword" validate:"required"`
+	Pages    int          `json:"pages" validate:"required,number,min=1,max=20"`
+	Campaign CampaignOpts `json:"campaign,omitempty" validate:"-"`
+	Method   int          `json:"method,omitempty" validate:"oneof=0 1"`
 }
 
 type KeywordResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type RegisterRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type AuthRequest struct {
+	Username string `json:"username" validate:"required,min=3,max=32"`
+	Password string `json:"password" validate:"required,min=3,max=32"`
 }
 
 type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
+	OldPassword string `json:"old_password" validate:"required,min=3,max=32"`
+	NewPassword string `json:"new_password" validate:"required,min=3,max=32"`
 }
 
 type CreateCampaignRequest struct {
-	Title string `json:"title"`
+	Title string `json:"title" validate:"required,min=3,max=32"`
 }
 
 type EditCampaignRequest struct {
-	Title string `json:"title"`
+	Title string `json:"title" validate:"required,min=3,max=32"`
 }
 
 type DeleteResultsCampaignRequest struct {
-	Urls []string `json:"urls"`
+	Urls []string `json:"urls" validate:"required,min=1,urls"`
 }
 
 func (app *Application) initAPI() {
-	e := echo.New()
-	e.Use(middleware.CORS())
+	f := fiber.New(fiber.Config{
+		Immutable:    true,
+		ServerHeader: "Fiber",
+		AppName:      "gesellschaft-hale",
+		ErrorHandler: ErrorHandler(),
+	})
+	f.Use(cors.New())
 
-	auth := e.Group("auth")
-	auth.POST("/register", app.handleRegister)
-	auth.POST("/login", app.handleLogin)
+	auth := f.Group("/auth")
+	auth.Post("/register", app.handleRegister)
+	auth.Post("/login", app.handleLogin)
 
-	api := e.Group("api")
-	if app.UseJWT {
-		api.Use(echojwt.WithConfig(echojwt.Config{
-			SigningKey:    jwtsecret,
-			SigningMethod: "HS256",
-			TokenLookup:   "header:Token",
-		}))
-	}
-	api.POST("/mail", app.handleMails)
-	api.POST("/keyword", app.handleKeyword)
-	api.POST("/keywordmail", app.handleMailsFromKeyword)
-
-	campaigns := api.Group("/campaigns")
-	campaigns.Use(verifyOwnershipMiddleware)
-	campaigns.POST("/create", app.handleCreateCampaign)
-	campaigns.DELETE("/delete/:id", app.handleDeleteCampaign)
-	campaigns.PATCH("/edit/:id", app.handleEditCampaign)
-	campaigns.GET("/results/:id", app.handleGetResultsCampaign)
-	campaigns.DELETE("/results/:id", app.handleDeleteResultsCampaign)
+	api := f.Group("/api")
+	api.Use(jwtware.New(jwtware.Config{
+		SigningKey:   jwtware.SigningKey{Key: jwtsecret},
+		ErrorHandler: ErrorHandler(),
+	}))
+	api.Use(localsIDMiddleware)
+	api.Post("/getmails", app.handleMails)
+	api.Post("/keyword", app.handleKeyword)
+	api.Post("/keywordmail", app.handleKeywordMails)
 
 	account := api.Group("/account")
-	account.Use(verifyUserMiddleware)
-	account.PATCH("/password/change", app.handleChangePassword)
-	account.PATCH("/password/reset", app.handleResetPassword)
+	account.Patch("/password/change", app.handleChangePassword)
+	account.Post("/password/reset", app.handleResetPassword)
 
-	// management of users, admin only
-	users := api.Group("/users")
-	users.Use(adminMiddleware)
-	users.POST("/create", app.handleCreateUser)
-	users.GET("/get", app.handleGetAllUsers)
-	users.GET("/get/:id", verifyIDMiddleware(app.handleGetUser))
-	users.DELETE("/delete/:id", verifyIDMiddleware(app.handleDeleteUser))
-	users.PATCH("/edit/:id", verifyIDMiddleware(app.handleEditUser))
+	campaign := api.Group("/campaign")
+	campaign.Use(campaignMiddleware)
+	campaign.Post("/create", app.handleCreateCampaign)
+	campaign.Get("/:id<int>", app.handleGetCampaign)
+	campaign.Patch("/:id<int>", app.handleEditCampaign)
+	campaign.Delete("/:id<int>", app.handleDeleteCampaign)
+	campaign.Get("/results/:id<int>", app.handleGetResultsCampaign)
+	campaign.Delete("/results/:id<int>", app.handleDeleteResultsCampaign)
 
-	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
-		log.Fatal(err)
+	admin := api.Group("/admin")
+	admin.Use(adminOnlyMiddleware)
+
+	users := admin.Group("/users")
+	users.Get("/", app.handleGetAllUsers)
+	users.Post("/create", app.handleCreateUser)
+	users.Get("/:id<int>", app.handleGetUser)
+	users.Patch("/:id<int>", app.handleEditUser)
+	users.Delete("/:id<int>", app.handleDeleteUser)
+
+	if err := f.ListenTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
+		log.Fatalf("error spinning fiber: %v", err)
 	}
+
 }
 
-func (app *Application) handleKeyword(c echo.Context) error {
+func (app *Application) handleKeyword(c *fiber.Ctx) error {
 	request := new(KeywordRequest)
 	response := new(KeywordResponse)
 
-	if err := bind(c, &request); err != nil {
-		return err
-	}
-
-	if err := validateHandleKeyword(request); err != nil {
-		return err
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
 	}
 
 	u, err := getUserFromJWT(c)
@@ -146,24 +145,26 @@ func (app *Application) handleKeyword(c echo.Context) error {
 
 	response.Websites = results
 
-	return c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func (app *Application) handleMails(c echo.Context) error {
+func (app *Application) handleMails(c *fiber.Ctx) error {
 	request := new(GetMailsRequest)
 	response := new(GetMailsResponse)
 
-	if err := bind(c, &request); err != nil {
-		return err
-	}
-
-	if err := validateHandleMails(request); err != nil {
-		return err
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
 	}
 
 	u, err := getUserFromJWT(c)
 	if err != nil {
 		return err
+	}
+
+	if request.Campaign.ID != nil {
+		if err := verifyCampaignOwnership(u, *request.Campaign.ID); err != nil {
+			return err
+		}
 	}
 
 	results, err := app.getMailsFromUrls(request.Urls, request.Method)
@@ -172,24 +173,22 @@ func (app *Application) handleMails(c echo.Context) error {
 	}
 
 	if request.Campaign.ID != nil {
-		saveToCampaign(u, *request.Campaign.ID, results)
+		if err := saveToCampaign(u, *request.Campaign.ID, results); err != nil {
+			return err
+		}
 	}
 
 	response.Websites = results
 
-	return c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func (app *Application) handleMailsFromKeyword(c echo.Context) error {
+func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 	request := new(KeywordRequest)
 	response := new(KeywordResponse)
 
-	if err := bind(c, &request); err != nil {
-		return err
-	}
-
-	if err := validateHandleKeyword(request); err != nil {
-		return err
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
 	}
 
 	u, err := getUserFromJWT(c)
@@ -213,18 +212,14 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 
 	response.Websites = results
 
-	return c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func (app *Application) handleRegister(c echo.Context) error {
-	request := new(RegisterRequest)
+func (app *Application) handleRegister(c *fiber.Ctx) error {
+	request := new(AuthRequest)
 
-	if err := bind(c, &request); err != nil {
-		return err
-	}
-
-	if err := validateHandleRegister(request); err != nil {
-		return err
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
 	}
 
 	user := new(User)
@@ -238,18 +233,16 @@ func (app *Application) handleRegister(c echo.Context) error {
 		return internalError(err)
 	}
 
-	return c.JSON(http.StatusCreated, "registered")
+	return c.Status(fiber.StatusCreated).JSON(Message{
+		Message: "Created account successfully.",
+	})
 }
 
-func (app *Application) handleLogin(c echo.Context) error {
-	request := new(LoginRequest)
+func (app *Application) handleLogin(c *fiber.Ctx) error {
+	request := new(AuthRequest)
 
-	if err := bind(c, &request); err != nil {
-		return err
-	}
-
-	if err := validateHandleLogin(request); err != nil {
-		return err
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
 	}
 
 	// pull user from db
@@ -268,73 +261,75 @@ func (app *Application) handleLogin(c echo.Context) error {
 		return internalError(fmt.Errorf("err generating jwt"))
 	}
 
-	return c.JSON(http.StatusOK, token)
+	return c.Status(fiber.StatusOK).JSON(struct {
+		Token string `json:"token"`
+	}{
+		Token: token,
+	})
 }
 
-func (app *Application) handleResetPassword(c echo.Context) error {
-	cc := c.(*CustomContext)
+func (app *Application) handleResetPassword(c *fiber.Ctx) error {
 	response := struct {
 		Password string `json:"password"`
 	}{}
 
-	user := cc.getUser()
+	u, err := getUserFromJWT(c)
+	if err != nil {
+		return err
+	}
 
 	pass, err := password.Generate(24, 10, 10, false, false)
 	if err != nil {
 		return internalError(fmt.Errorf("error generating the random password"))
 	}
 
-	if err := user.SetPassword(pass); err != nil {
+	if err := u.SetPassword(pass); err != nil {
 		return internalError(protocol.ErrPasswordEncryption)
 	}
 
-	if err := user.Update(); err != nil {
+	if err := u.Update(); err != nil {
 		return internalError(err)
 	}
 
 	response.Password = pass
 
-	return c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 
 }
-func (app *Application) handleChangePassword(c echo.Context) error {
+func (app *Application) handleChangePassword(c *fiber.Ctx) error {
 	request := new(ChangePasswordRequest)
-	cc := c.(*CustomContext)
 
 	if err := bind(c, request); err != nil {
+		return validationError(c, err)
+	}
+
+	u, err := getUserFromJWT(c)
+	if err != nil {
 		return err
 	}
 
-	user := cc.getUser()
-
-	if err := validateHandleChangePassword(request); err != nil {
-		return err
-	}
-
-	if err := user.IsPassword(request.OldPassword); err != nil {
+	if err := u.IsPassword(request.OldPassword); err != nil {
 		return badRequest(err)
 	}
 
-	if err := user.SetPassword(request.NewPassword); err != nil {
+	if err := u.SetPassword(request.NewPassword); err != nil {
 		return internalError(protocol.ErrPasswordEncryption)
 	}
 
-	if err := user.Update(); err != nil {
+	if err := u.Update(); err != nil {
 		return internalError(err)
 	}
 
-	return c.JSON(http.StatusOK, "edited password")
+	return c.Status(fiber.StatusOK).JSON(Message{
+		Message: "Password changed successfully",
+	})
 }
 
-func (app *Application) handleCreateCampaign(c echo.Context) error {
+func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
 	request := new(CreateCampaignRequest)
 
 	if err := bind(c, request); err != nil {
-		return err
-	}
-
-	if err := validateHandleCreateCampaign(request); err != nil {
-		return err
+		return validationError(c, err)
 	}
 
 	u, err := getUserFromJWT(c)
@@ -351,18 +346,34 @@ func (app *Application) handleCreateCampaign(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, "created")
+	return c.Status(fiber.StatusCreated).JSON(Message{
+		Message: "Campaign successfully created",
+	})
+}
+
+func (app *Application) handleGetCampaign(c *fiber.Ctx) error {
+	id, _ := getIDInLocals(c)
+
+	campaign, err := getCampaign(id)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	return c.Status(fiber.StatusFound).JSON(campaign)
 }
 
 type GetListsCampaignResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
 
-func (app *Application) handleGetResultsCampaign(c echo.Context) error {
-	cc := c.(*CustomContext)
+func (app *Application) handleGetResultsCampaign(c *fiber.Ctx) error {
 	response := new(GetListsCampaignResponse)
+	id, has := getIDInLocals(c)
+	if !has {
+		return badRequest(protocol.ErrInvalidID)
+	}
 
-	campaign, err := getCampaign(cc.GetID())
+	campaign, err := getCampaign(id)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -397,13 +408,13 @@ mainloop:
 		}
 	}
 
-	return c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func (app *Application) handleDeleteCampaign(c echo.Context) error {
-	cc := c.(*CustomContext)
+func (app *Application) handleDeleteCampaign(c *fiber.Ctx) error {
+	id, _ := getIDInLocals(c)
 
-	campaign, err := getCampaign(cc.GetID())
+	campaign, err := getCampaign(id)
 	if err != nil {
 		return err
 	}
@@ -412,22 +423,18 @@ func (app *Application) handleDeleteCampaign(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, "deleted")
+	return c.Status(fiber.StatusNoContent).JSON("")
 }
 
-func (app *Application) handleEditCampaign(c echo.Context) error {
-	cc := c.(*CustomContext)
+func (app *Application) handleEditCampaign(c *fiber.Ctx) error {
 	request := new(EditCampaignRequest)
 
 	if err := bind(c, request); err != nil {
-		return err
+		return validationError(c, err)
 	}
+	id, _ := getIDInLocals(c)
 
-	if err := verifyHandleEditCampaign(request); err != nil {
-		return err
-	}
-
-	campaign, err := getCampaign(cc.GetID())
+	campaign, err := getCampaign(id)
 	if err != nil {
 		return err
 	}
@@ -437,23 +444,21 @@ func (app *Application) handleEditCampaign(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, "edited")
+	return c.Status(fiber.StatusOK).JSON(Message{
+		Message: "Edited successfully",
+	})
 
 }
 
-func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
-	cc := c.(*CustomContext)
+func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 	request := new(DeleteResultsCampaignRequest)
 
 	if err := bind(c, request); err != nil {
-		return err
+		return validationError(c, err)
 	}
 
-	if err := validateHandleDeleteResultsCampaign(request); err != nil {
-		return err
-	}
-
-	campaign, err := getCampaign(cc.GetID())
+	id, _ := getIDInLocals(c)
+	campaign, err := getCampaign(id)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -461,47 +466,47 @@ func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
 	var has bool
 	for _, w := range campaign.Websites {
 		if protocol.IsExists(request.Urls, w) {
-			has = true
+			if !has {
+				has = true
+			}
 			campaign.Websites = protocol.RemoveStrFromSlice(campaign.Websites, w)
 		}
 	}
 
-	// avoid update if no change.
 	if !has {
-		return c.JSON(http.StatusBadRequest, fmt.Errorf("no matching websites found in the campaign, deleted 0 entry"))
+		return badRequest(fmt.Errorf("no matching websites found"))
 	}
 
 	if err := campaign.Update(); err != nil {
 		return internalError(err)
 	}
 
-	return c.JSON(http.StatusOK, "deleted entries from result")
+	return c.Status(fiber.StatusNoContent).JSON("")
 }
 
-func (app *Application) handleGetUser(c echo.Context) error {
-	cc := c.(*CustomContext)
-	id := cc.GetID()
+func (app *Application) handleGetUser(c *fiber.Ctx) error {
+	u := new(User)
+	id, _ := getIDInLocals(c)
 
 	u, err := getUserByID(id)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, u)
+	return c.Status(fiber.StatusOK).JSON(u)
 }
 
-func (app *Application) handleGetAllUsers(c echo.Context) error {
+func (app *Application) handleGetAllUsers(c *fiber.Ctx) error {
 	users, err := getAllUsers()
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, users)
+	return c.Status(fiber.StatusOK).JSON(users)
 }
 
-func (app *Application) handleDeleteUser(c echo.Context) error {
-	cc := c.(*CustomContext)
-	id := cc.GetID()
+func (app *Application) handleDeleteUser(c *fiber.Ctx) error {
+	id, _ := getIDInLocals(c)
 
 	u, err := getUserByID(id)
 	if err != nil {
@@ -511,20 +516,19 @@ func (app *Application) handleDeleteUser(c echo.Context) error {
 	if err := u.Delete(); err != nil {
 		return internalError(err)
 	}
-	return c.JSON(http.StatusNoContent, "")
+	return c.Status(fiber.StatusNoContent).JSON("")
 }
 
 type EditUserRequest struct {
-	Username string `json:"username"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
 }
 
-func (app *Application) handleEditUser(c echo.Context) error {
+func (app *Application) handleEditUser(c *fiber.Ctx) error {
 	request := new(EditUserRequest)
-	cc := c.(*CustomContext)
-	id := cc.GetID()
+	id, _ := getIDInLocals(c)
 
 	if err := bind(c, request); err != nil {
-		return err
+		return validationError(c, err)
 	}
 
 	u, err := getUserByID(id)
@@ -540,27 +544,24 @@ func (app *Application) handleEditUser(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, "edited")
+	return c.Status(fiber.StatusOK).JSON(Message{
+		Message: "Edited user succesfully",
+	})
 }
 
 type CreateUserRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
+	Password string `json:"password" validate:"required,min=3,max=32"`
 }
 
-func (app *Application) handleCreateUser(c echo.Context) error {
+func (app *Application) handleCreateUser(c *fiber.Ctx) error {
 	request := new(CreateUserRequest)
 
 	if err := bind(c, request); err != nil {
-		return err
-	}
-
-	if err := validateCreateUser(request); err != nil {
-		return err
+		return validationError(c, err)
 	}
 
 	user := new(User)
-
 	if err := user.SetUsername(request.Username).SetPassword(request.Password); err != nil {
 		return err
 	}
@@ -569,5 +570,7 @@ func (app *Application) handleCreateUser(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusCreated, "created")
+	return c.Status(fiber.StatusCreated).JSON(Message{
+		Message: "Created user successfully",
+	})
 }
