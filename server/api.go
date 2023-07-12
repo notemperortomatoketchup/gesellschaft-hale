@@ -26,25 +26,31 @@ type CampaignOpts struct {
 	ID *uint `json:"id" validate:"number"`
 }
 
-type GetMailsRequest struct {
-	Urls     []string     `json:"urls" validate:"required,min=1,urls"`
-	Method   int          `json:"method,omitempty" validate:"oneof=0 1"`
-	Campaign CampaignOpts `json:"campaign,omitempty" validate:"-"`
+type MethodOpts struct {
+	Method int `json:"method,omitempty" validate:"oneof=0 1"`
 }
 
-type GetMailsResponse struct {
+type TitleRequest struct {
+	Title string `json:"title" validate:"required,min=3,max=32"`
+}
+type UrlsRequest struct {
+	Urls []string `json:"urls" validate:"required,min=1,urls"`
+}
+type WebsitesResponse struct {
 	Websites []*protocol.Website `json:"data"`
+}
+
+type GetMailsRequest struct {
+	UrlsRequest
+	MethodOpts
+	Campaign CampaignOpts `json:"campaign,omitempty" validate:"-"`
 }
 
 type KeywordRequest struct {
-	Keyword  string       `json:"keyword" validate:"required"`
-	Pages    int          `json:"pages" validate:"required,number,min=1,max=20"`
+	Keyword string `json:"keyword" validate:"required"`
+	Pages   int    `json:"pages" validate:"required,number,min=1,max=20"`
+	MethodOpts
 	Campaign CampaignOpts `json:"campaign,omitempty" validate:"-"`
-	Method   int          `json:"method,omitempty" validate:"oneof=0 1"`
-}
-
-type KeywordResponse struct {
-	Websites []*protocol.Website `json:"data"`
 }
 
 type AuthRequest struct {
@@ -57,16 +63,8 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=3,max=32"`
 }
 
-type CreateCampaignRequest struct {
-	Title string `json:"title" validate:"required,min=3,max=32"`
-}
-
-type EditCampaignRequest struct {
-	Title string `json:"title" validate:"required,min=3,max=32"`
-}
-
-type DeleteResultsCampaignRequest struct {
-	Urls []string `json:"urls" validate:"required,min=1,urls"`
+type EditUserRequest struct {
+	Username string `json:"username" validate:"required,min=3,max=32"`
 }
 
 func (app *Application) initAPI() {
@@ -123,7 +121,7 @@ func (app *Application) initAPI() {
 
 func (app *Application) handleKeyword(c *fiber.Ctx) error {
 	request := new(KeywordRequest)
-	response := new(KeywordResponse)
+	response := new(WebsitesResponse)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -150,7 +148,7 @@ func (app *Application) handleKeyword(c *fiber.Ctx) error {
 
 func (app *Application) handleMails(c *fiber.Ctx) error {
 	request := new(GetMailsRequest)
-	response := new(GetMailsResponse)
+	response := new(WebsitesResponse)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -185,7 +183,7 @@ func (app *Application) handleMails(c *fiber.Ctx) error {
 
 func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 	request := new(KeywordRequest)
-	response := new(KeywordResponse)
+	response := new(WebsitesResponse)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -326,7 +324,7 @@ func (app *Application) handleChangePassword(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
-	request := new(CreateCampaignRequest)
+	request := new(TitleRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -362,12 +360,8 @@ func (app *Application) handleGetCampaign(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusFound).JSON(campaign)
 }
 
-type GetListsCampaignResponse struct {
-	Websites []*protocol.Website `json:"data"`
-}
-
 func (app *Application) handleGetResultsCampaign(c *fiber.Ctx) error {
-	response := new(GetListsCampaignResponse)
+	response := new(WebsitesResponse)
 	id, has := getIDInLocals(c)
 	if !has {
 		return badRequest(protocol.ErrInvalidID)
@@ -427,7 +421,7 @@ func (app *Application) handleDeleteCampaign(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleEditCampaign(c *fiber.Ctx) error {
-	request := new(EditCampaignRequest)
+	request := new(TitleRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -451,7 +445,7 @@ func (app *Application) handleEditCampaign(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
-	request := new(DeleteResultsCampaignRequest)
+	request := new(UrlsRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -519,10 +513,6 @@ func (app *Application) handleDeleteUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusNoContent).JSON("")
 }
 
-type EditUserRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=32"`
-}
-
 func (app *Application) handleEditUser(c *fiber.Ctx) error {
 	request := new(EditUserRequest)
 	id, _ := getIDInLocals(c)
@@ -549,13 +539,8 @@ func (app *Application) handleEditUser(c *fiber.Ctx) error {
 	})
 }
 
-type CreateUserRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=32"`
-	Password string `json:"password" validate:"required,min=3,max=32"`
-}
-
 func (app *Application) handleCreateUser(c *fiber.Ctx) error {
-	request := new(CreateUserRequest)
+	request := new(AuthRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
