@@ -110,7 +110,7 @@ func assertValidUrls(fieldname string, urls ...string) error {
 	return nil
 }
 
-func validateHandleMails(r *HandleGetMailsRequest) error {
+func validateHandleMails(r *GetMailsRequest) error {
 	if err := assertNotEmptySlice("urls", r.Urls); err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func validateHandleMails(r *HandleGetMailsRequest) error {
 	return nil
 }
 
-func validateHandleKeyword(r *HandleKeywordRequest) error {
+func validateHandleKeyword(r *KeywordRequest) error {
 	if err := assertNotEmpty("keyword", r.Keyword); err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func validateHandleKeyword(r *HandleKeywordRequest) error {
 	return nil
 }
 
-func validateHandleRegister(r *HandleRegisterRequest) error {
+func validateHandleRegister(r *RegisterRequest) error {
 	if err := assertType("username", r.Username, "string"); err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func validateHandleRegister(r *HandleRegisterRequest) error {
 	return nil
 }
 
-func validateHandleLogin(r *handleLoginRequest) error {
+func validateHandleLogin(r *LoginRequest) error {
 	if err := assertType("username", r.Username, "string"); err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func validateHandleLogin(r *handleLoginRequest) error {
 	return nil
 }
 
-func validateHandleChangePassword(r *handleChangePasswordRequest) error {
+func validateHandleChangePassword(r *ChangePasswordRequest) error {
 	if err := assertType("old_password", r.OldPassword, "string"); err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func validateHandleChangePassword(r *handleChangePasswordRequest) error {
 	return nil
 }
 
-func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
+func validateHandleCreateCampaign(r *CreateCampaignRequest) error {
 	if err := assertType("title", r.Title, "string"); err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func validateHandleCreateCampaign(r *handleCreateCampaignRequest) error {
 	return nil
 }
 
-func verifyHandleEditCampaign(r *handleEditCampaignRequest) error {
+func verifyHandleEditCampaign(r *EditCampaignRequest) error {
 
 	if err := assertType("title", r.Title, "string"); err != nil {
 		return err
@@ -229,7 +229,7 @@ func verifyHandleEditCampaign(r *handleEditCampaignRequest) error {
 	return nil
 }
 
-func validateHandleDeleteResultsCampaign(r *HandleDeleteResultsCampaignRequest) error {
+func validateHandleDeleteResultsCampaign(r *DeleteResultsCampaignRequest) error {
 	if err := assertNotEmptySlice("urls", r.Urls); err != nil {
 		return err
 	}

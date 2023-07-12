@@ -22,51 +22,51 @@ type CampaignOpts struct {
 	ID *uint `json:"id"`
 }
 
-type HandleGetMailsRequest struct {
+type GetMailsRequest struct {
 	Urls     []string     `json:"urls"`
 	Campaign CampaignOpts `json:"campaign,omitempty"`
 	Method   int          `json:"method,omitempty"`
 }
 
-type HandleGetMailsResponse struct {
+type GetMailsResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
 
-type HandleKeywordRequest struct {
+type KeywordRequest struct {
 	Keyword  string       `json:"keyword"`
 	Pages    int          `json:"pages"`
 	Campaign CampaignOpts `json:"campaign,omitempty"`
 	Method   int          `json:"method,omitempty"`
 }
 
-type HandleKeywordResponse struct {
+type KeywordResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
 
-type handleLoginRequest struct {
+type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-type HandleRegisterRequest struct {
+type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-type handleChangePasswordRequest struct {
+type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }
 
-type handleCreateCampaignRequest struct {
+type CreateCampaignRequest struct {
 	Title string `json:"title"`
 }
 
-type handleEditCampaignRequest struct {
+type EditCampaignRequest struct {
 	Title string `json:"title"`
 }
 
-type HandleDeleteResultsCampaignRequest struct {
+type DeleteResultsCampaignRequest struct {
 	Urls []string `json:"urls"`
 }
 
@@ -107,8 +107,8 @@ func (app *Application) initAPI() {
 }
 
 func (app *Application) handleKeyword(c echo.Context) error {
-	request := new(HandleKeywordRequest)
-	response := new(HandleKeywordResponse)
+	request := new(KeywordRequest)
+	response := new(KeywordResponse)
 
 	if err := bind(c, &request); err != nil {
 		return err
@@ -138,8 +138,8 @@ func (app *Application) handleKeyword(c echo.Context) error {
 }
 
 func (app *Application) handleMails(c echo.Context) error {
-	request := new(HandleGetMailsRequest)
-	response := new(HandleGetMailsResponse)
+	request := new(GetMailsRequest)
+	response := new(GetMailsResponse)
 
 	if err := bind(c, &request); err != nil {
 		return err
@@ -169,8 +169,8 @@ func (app *Application) handleMails(c echo.Context) error {
 }
 
 func (app *Application) handleMailsFromKeyword(c echo.Context) error {
-	request := new(HandleKeywordRequest)
-	response := new(HandleKeywordResponse)
+	request := new(KeywordRequest)
+	response := new(KeywordResponse)
 
 	if err := bind(c, &request); err != nil {
 		return err
@@ -205,7 +205,7 @@ func (app *Application) handleMailsFromKeyword(c echo.Context) error {
 }
 
 func (app *Application) handleRegister(c echo.Context) error {
-	request := new(HandleRegisterRequest)
+	request := new(RegisterRequest)
 
 	if err := bind(c, &request); err != nil {
 		return err
@@ -230,7 +230,7 @@ func (app *Application) handleRegister(c echo.Context) error {
 }
 
 func (app *Application) handleLogin(c echo.Context) error {
-	request := new(handleLoginRequest)
+	request := new(LoginRequest)
 
 	if err := bind(c, &request); err != nil {
 		return err
@@ -260,7 +260,7 @@ func (app *Application) handleLogin(c echo.Context) error {
 }
 
 func (app *Application) handleChangePassword(c echo.Context) error {
-	request := new(handleChangePasswordRequest)
+	request := new(ChangePasswordRequest)
 
 	if err := bind(c, request); err != nil {
 		return err
@@ -291,7 +291,7 @@ func (app *Application) handleChangePassword(c echo.Context) error {
 }
 
 func (app *Application) handleCreateCampaign(c echo.Context) error {
-	request := new(handleCreateCampaignRequest)
+	request := new(CreateCampaignRequest)
 
 	if err := bind(c, request); err != nil {
 		return err
@@ -318,13 +318,13 @@ func (app *Application) handleCreateCampaign(c echo.Context) error {
 	return c.JSON(http.StatusOK, "created")
 }
 
-type handleGetListsCampaignResponse struct {
+type GetListsCampaignResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
 
 func (app *Application) handleGetResultsCampaign(c echo.Context) error {
 	cc := c.(*CustomContext)
-	response := new(handleGetListsCampaignResponse)
+	response := new(GetListsCampaignResponse)
 
 	campaign, err := getCampaign(cc.GetID())
 	if err != nil {
@@ -381,7 +381,7 @@ func (app *Application) handleDeleteCampaign(c echo.Context) error {
 
 func (app *Application) handleEditCampaign(c echo.Context) error {
 	cc := c.(*CustomContext)
-	request := new(handleEditCampaignRequest)
+	request := new(EditCampaignRequest)
 
 	if err := bind(c, request); err != nil {
 		return err
@@ -405,24 +405,9 @@ func (app *Application) handleEditCampaign(c echo.Context) error {
 
 }
 
-func handleDeleteFromCampaign(c echo.Context) error {
-	cc := c.(*CustomContext)
-
-	campaign, err := getCampaign(cc.GetID())
-	if err != nil {
-		return badRequest(err)
-	}
-
-	if err := campaign.Delete(); err != nil {
-		return internalError(err)
-	}
-
-	return c.JSON(http.StatusNoContent, "deleted entry")
-}
-
 func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
 	cc := c.(*CustomContext)
-	request := new(HandleDeleteResultsCampaignRequest)
+	request := new(DeleteResultsCampaignRequest)
 
 	if err := bind(c, request); err != nil {
 		return err
@@ -437,10 +422,17 @@ func (app *Application) handleDeleteResultsCampaign(c echo.Context) error {
 		return badRequest(err)
 	}
 
+	var has bool
 	for _, w := range campaign.Websites {
 		if protocol.IsExists(request.Urls, w) {
+			has = true
 			campaign.Websites = protocol.RemoveStrFromSlice(campaign.Websites, w)
 		}
+	}
+
+	// avoid update if no change.
+	if !has {
+		return c.JSON(http.StatusBadRequest, fmt.Errorf("no matching websites found in the campaign, deleted 0 entry"))
 	}
 
 	if err := campaign.Update(); err != nil {
