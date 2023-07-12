@@ -109,9 +109,9 @@ func (app *Application) initAPI() {
 	users.Use(adminMiddleware)
 	users.POST("/create", app.handleCreateUser)
 	users.GET("/get", app.handleGetAllUsers)
-	users.GET("/get/:id", app.handleGetUser)
-	users.DELETE("/delete/:id", app.handleDeleteUser)
-	users.PATCH("/edit/:id", app.handleEditUser)
+	users.GET("/get/:id", verifyIDMiddleware(app.handleGetUser))
+	users.DELETE("/delete/:id", verifyIDMiddleware(app.handleDeleteUser))
+	users.PATCH("/edit/:id", verifyIDMiddleware(app.handleEditUser))
 
 	if err := e.StartTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatal(err)
