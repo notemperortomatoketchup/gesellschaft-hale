@@ -22,3 +22,4 @@ go.work
 Dockerfile.*
 /protocol 
 config.yaml
+Makefile
