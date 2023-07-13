@@ -2,7 +2,7 @@ package main
 
 func (app *Application) GetClientsList() []*Client {
 	var clients []*Client
-	app.Clients.Range(func(key, value any) bool {
+	app.clients.Range(func(key, value any) bool {
 		clients = append(clients, value.(*Client))
 		return true
 	})

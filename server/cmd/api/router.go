@@ -15,7 +15,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 
 	api := f.Group("/api")
 	api.Use(jwtware.New(jwtware.Config{
-		SigningKey:   jwtware.SigningKey{Key: jwtsecret},
+		SigningKey:   jwtware.SigningKey{Key: app.config.secret},
 		ErrorHandler: ErrorHandler(),
 	}))
 	api.Use(localsIDMiddleware)

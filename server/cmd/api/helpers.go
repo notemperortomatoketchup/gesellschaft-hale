@@ -16,10 +16,10 @@ func (app *Application) awaitResults(id uint32) (*protocol.ResponseJobWrapper, e
 	// as long as result is nil we shall range.
 	for result == nil {
 		time.Sleep(time.Second)
-		app.Results.Range(func(key, value any) bool {
+		app.results.Range(func(key, value any) bool {
 			if key.(uint32) == id {
 				result = value.(*protocol.ResponseJobWrapper)
-				app.Results.Delete(key)
+				app.results.Delete(key)
 				return false
 			}
 			return true
@@ -139,7 +139,7 @@ func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol
 			return nil, internalError(protocol.ErrNoBrowserAvailable)
 		}
 
-		app.RequestCh <- &protocol.RequestJobWrapper{
+		app.requestCh <- &protocol.RequestJobWrapper{
 			RequestId: reqId,
 			ClientId:  client.id,
 			Type:      protocol.MessageType_GET_MAILS_URLS,
@@ -173,7 +173,7 @@ func (app *Application) getMailsFromWebsites(websites []*protocol.Website, metho
 			return nil, internalError(protocol.ErrNoBrowserAvailable)
 		}
 
-		app.RequestCh <- &protocol.RequestJobWrapper{
+		app.requestCh <- &protocol.RequestJobWrapper{
 			RequestId: reqId,
 			ClientId:  client.id,
 			Type:      protocol.MessageType_GET_MAILS_WEBSITES,
@@ -203,7 +203,7 @@ func (app *Application) getKeywordResults(kw string, pages int, domain string) (
 		domain = "google.fr"
 	}
 
-	app.RequestCh <- &protocol.RequestJobWrapper{
+	app.requestCh <- &protocol.RequestJobWrapper{
 		RequestId:    reqId,
 		Type:         protocol.MessageType_GET_KEYWORD,
 		ClientId:     client.id,

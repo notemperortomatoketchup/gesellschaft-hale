@@ -5,14 +5,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (u *User) GenerateJWT() (string, error) {
+func GenerateJWT(secret []byte, u *User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":       u.ID,
 		"username": u.Username,
 		"role":     u.Role,
 	})
 
-	tokenStr, err := token.SignedString([]byte("NEwBigSecretNo303003"))
+	tokenStr, err := token.SignedString(secret)
 	if err != nil {
 		return "", err
 	}

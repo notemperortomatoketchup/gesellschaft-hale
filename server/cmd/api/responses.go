@@ -27,7 +27,7 @@ func validateBindError(err error) error {
 	return badRequest(fmt.Errorf("invalid type at %s (got: %s | want: %s)", field, got, expected))
 }
 
-func bind(c *fiber.Ctx, i any) []*ErrorResponse {
+func bind(c *fiber.Ctx, i any) error {
 	var errors []*ErrorResponse
 
 	if err := c.BodyParser(i); err != nil {
@@ -46,7 +46,7 @@ func bind(c *fiber.Ctx, i any) []*ErrorResponse {
 	}
 
 	if errors != nil {
-		return errors
+		return validationError(c, errors)
 	}
 
 	return nil

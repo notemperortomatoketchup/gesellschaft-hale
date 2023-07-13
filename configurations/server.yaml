@@ -2,7 +2,7 @@
 core:
   port: ":8443"
   dev: true
-dataase:
+database:
   url: "https://nthqdxpnkubmeefmssat.supabase.co"
   key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aHFkeHBua3VibWVlZm1zc2F0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODg3NTcwOTgsImV4cCI6MjAwNDMzMzA5OH0.JdNuCMg1XkxlKpWT8KQOrm4nbAa_-4gnshZwfg4G3pw"
 jwt:

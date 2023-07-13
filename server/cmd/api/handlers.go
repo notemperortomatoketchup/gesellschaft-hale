@@ -173,13 +173,13 @@ func (app *Application) handleRegister(c *fiber.Ctx) error {
 	}
 
 	user := new(models.User)
-	user.SetUsername(request.Username)
 
-	if err := user.SetPassword(request.Password); err != nil {
+	if err := user.SetUsername(request.Username).SetPassword(request.Password); err != nil {
 		return internalError(protocol.ErrPasswordEncryption)
 	}
 
 	if err := user.Insert(); err != nil {
+		fmt.Printf("user -> %v", *user)
 		return internalError(err)
 	}
 
@@ -206,15 +206,13 @@ func (app *Application) handleLogin(c *fiber.Ctx) error {
 	}
 
 	// got user right, need to generate token jwt
-	token, err := user.GenerateJWT()
+	token, err := models.GenerateJWT(app.config.secret, user)
 	if err != nil {
 		return internalError(fmt.Errorf("err generating jwt"))
 	}
 
-	return c.Status(fiber.StatusOK).JSON(struct {
-		Token string `json:"token"`
-	}{
-		Token: token,
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"Token": token,
 	})
 }
 

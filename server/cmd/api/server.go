@@ -36,10 +36,10 @@ func (s *Server) StatusChan(stream protocol.Haler_StatusChanServer) error {
 				continue
 			}
 
-			current, exists := s.app.Clients.Load(status.GetId())
+			current, exists := s.app.clients.Load(status.GetId())
 			// if not existing, we create it fully
 			if !exists {
-				s.app.Clients.Store(status.GetId(), &Client{
+				s.app.clients.Store(status.GetId(), &Client{
 					id:    status.GetId(),
 					slots: status.GetSlots(),
 				})
@@ -47,7 +47,7 @@ func (s *Server) StatusChan(stream protocol.Haler_StatusChanServer) error {
 			}
 
 			current.(*Client).slots = status.GetSlots()
-			s.app.Clients.Store(status.GetId(), current)
+			s.app.clients.Store(status.GetId(), current)
 		}
 	}
 }
@@ -62,7 +62,7 @@ func (s *Server) ListenJobs(stream protocol.Haler_ListenJobsServer) error {
 				log.Printf("err while recv in listen jobs: %v", err)
 			}
 
-			req := <-s.app.RequestCh
+			req := <-s.app.requestCh
 			if err := stream.Send(req); err != nil {
 				log.Printf("err sending job request: %v", err)
 			}
@@ -71,11 +71,11 @@ func (s *Server) ListenJobs(stream protocol.Haler_ListenJobsServer) error {
 }
 
 func (s *Server) SendResult(ctx context.Context, in *protocol.ResponseJobWrapper) (*protocol.Empty, error) {
-	s.app.Results.Store(in.GetRequestId(), in)
+	s.app.results.Store(in.GetRequestId(), in)
 	return &protocol.Empty{}, nil
 }
 
 func (s *Server) HandleExit(ctx context.Context, in *protocol.ExitRequest) (*protocol.Empty, error) {
-	s.app.Clients.Delete(in.GetId())
+	s.app.clients.Delete(in.GetId())
 	return &protocol.Empty{}, nil
 }

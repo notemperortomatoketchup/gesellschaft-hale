@@ -7,17 +7,17 @@ import (
 )
 
 func (app *Application) StartAPI() {
-	app.Fiber = fiber.New(fiber.Config{
+	app.fiber = fiber.New(fiber.Config{
 		Immutable:    true,
 		ServerHeader: "Fiber",
 		AppName:      "gesellschaft-hale",
 		ErrorHandler: ErrorHandler(),
 	})
 
-	app.StartRouter(app.Fiber)
+	app.StartRouter(app.fiber)
 	app.StartValidator()
 
-	if err := app.Fiber.ListenTLS(":8443", "./certs/cert.pem", "./certs/key.pem"); err != nil {
+	if err := app.fiber.ListenTLS(app.config.port, "./certs/cert.pem", "./certs/key.pem"); err != nil {
 		log.Fatalf("error spinning fiber: %v", err)
 	}
 }

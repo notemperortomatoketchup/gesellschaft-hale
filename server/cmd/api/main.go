@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net"
 	"os"
@@ -11,17 +10,39 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/spf13/viper"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 	"github.com/wotlk888/gesellschaft-hale/server/models"
 	"google.golang.org/grpc"
 )
 
 type Application struct {
-	UseJWT    bool
-	Clients   sync.Map
-	RequestCh chan *protocol.RequestJobWrapper
-	Results   sync.Map
-	Fiber     *fiber.App
+	clients   sync.Map
+	requestCh chan *protocol.RequestJobWrapper
+	results   sync.Map
+	fiber     *fiber.App
+	config    *Config
+}
+
+type Config struct {
+	CoreConfig
+	JWTConfig
+	DatabaseConfig
+}
+
+type CoreConfig struct {
+	port string
+	dev  bool
+}
+
+type DatabaseConfig struct {
+	url string
+	key string
+}
+
+type JWTConfig struct {
+	enabled bool
+	secret  []byte
 }
 
 type Server struct {
@@ -34,30 +55,22 @@ type Client struct {
 	slots int32
 }
 
-var jwtsecret = []byte("HelloJWT3030033")
-
 func main() {
-	app := &Application{
-		RequestCh: make(chan *protocol.RequestJobWrapper, 5),
-	}
-
-	flag.BoolVar(&app.UseJWT, "jwt", false, "ues jwt or not?")
-	flag.Parse()
-
 	l, err := net.Listen("tcp", ":50001")
 	if err != nil {
 		log.Fatalf("err listener: %v", err)
 	}
 
-	models.StartDB()
-	app.StartValidator()
+	app := &Application{
+		requestCh: make(chan *protocol.RequestJobWrapper, 5),
+		config:    StartConfig(),
+	}
+	models.StartDB(app.config.url, app.config.key)
 
 	s := grpc.NewServer()
 	protocol.RegisterHalerServer(s, &Server{
 		app: app,
 	})
-
-	log.Printf("server listening at %v", l.Addr())
 
 	go func() {
 		if err := s.Serve(l); err != nil {
@@ -72,7 +85,30 @@ func main() {
 	signal.Notify(terminate, syscall.SIGTERM, syscall.SIGINT)
 	<-terminate
 
-	if err := app.Fiber.ShutdownWithTimeout(45 * time.Second); err != nil {
+	if err := app.fiber.ShutdownWithTimeout(45 * time.Second); err != nil {
 		log.Fatalf("graceful shutdown failed: %v", err)
 	}
+}
+
+func StartConfig() *Config {
+	config := new(Config)
+
+	viper.AddConfigPath("../../../configurations/")
+	viper.SetConfigName("server")
+	viper.SetConfigType("yaml")
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("err reading config: %v", err)
+	}
+
+	config.port = viper.GetString("core.port")
+	config.dev = viper.GetBool("core.dev")
+
+	config.url = viper.GetString("database.url")
+	config.key = viper.GetString("database.key")
+
+	config.enabled = viper.GetBool("jwt.enabled")
+	config.secret = []byte(viper.GetString("jwt.secret"))
+
+	return config
 }
