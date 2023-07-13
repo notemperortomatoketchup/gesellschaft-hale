@@ -1,19 +1,21 @@
 package models
 
 import (
-	"fmt"
+	"errors"
 	"log"
 
+	"github.com/lib/pq"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 	"github.com/wotlk888/gesellschaft-hale/server/util"
+	"gorm.io/gorm"
 )
 
 type Campaign struct {
-	ID        uint     `json:"campaign_id,omitempty"`
-	OwnerID   uint     `json:"owner_id"`
-	Title     string   `json:"title"`
-	CreatedAt string   `json:"created_at"`
-	Websites  []string `json:"websites"` // array of websites db base_url reference
+	ID        uint           `json:"id,omitempty" gorm:"primarykey"`
+	OwnerID   uint           `json:"owner_id" gorm:"column:owner_id"`
+	Title     string         `json:"title" `
+	CreatedAt string         `json:"created_at" gorm:"column:created_at"`
+	Websites  pq.StringArray `json:"websites" gorm:"type:text[]"` // array of websites db base_url reference
 }
 
 func CreateCampaign(ownerID uint, title string) (*Campaign, error) {
@@ -25,12 +27,12 @@ func CreateCampaign(ownerID uint, title string) (*Campaign, error) {
 		OwnerID:   ownerID,
 		Title:     title,
 		CreatedAt: util.GetCurrentTime(),
+		Websites:  []string{},
 	}, nil
 }
 
 func (c *Campaign) Insert() error {
-	var results []Campaign
-	if err := db.DB.From("campaigns").Insert(&c).Execute(&results); err != nil {
+	if err := db.Table("campaigns").Create(&c).Error; err != nil {
 		return err
 	}
 
@@ -38,17 +40,17 @@ func (c *Campaign) Insert() error {
 }
 
 func (c *Campaign) Delete() error {
-	var results []any
-	if err := db.DB.From("campaigns").Delete().Eq("campaign_id", fmt.Sprint(c.ID)).Execute(&results); err != nil {
+	if err := db.Table("campaigns").Delete(&Campaign{}, c.ID).Error; err != nil {
+		if errors.Is(gorm.ErrRecordNotFound, err) {
+			return protocol.ErrCampaignNotFound
+		}
 		return err
 	}
 	return nil
 }
 
 func (c *Campaign) Update() error {
-	var results []Campaign
-
-	if err := db.DB.From("campaigns").Update(&c).Eq("campaign_id", fmt.Sprint(c.ID)).Execute(&results); err != nil {
+	if err := db.Table("campaigns").Save(&c).Error; err != nil {
 		return err
 	}
 
@@ -61,12 +63,10 @@ func (c *Campaign) SetTitle(title string) {
 
 func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {
 	for _, w := range websites {
-		// cleaning duplicates
 		c.Websites = protocol.AppendUnique(c.Websites, w.BaseUrl)
 	}
 
-	var result []Campaign
-	if err := db.DB.From("campaigns").Update(&c).Eq("campaign_id", fmt.Sprint(c.ID)).Execute(&result); err != nil {
+	if err := db.Table("campaigns").Save(&c).Error; err != nil {
 		log.Printf("err adding to campaign update: %v", err)
 	}
 

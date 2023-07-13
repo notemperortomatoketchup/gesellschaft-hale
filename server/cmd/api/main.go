@@ -36,8 +36,7 @@ type CoreConfig struct {
 }
 
 type DatabaseConfig struct {
-	url string
-	key string
+	dsn string
 }
 
 type JWTConfig struct {
@@ -65,7 +64,7 @@ func main() {
 		requestCh: make(chan *protocol.RequestJobWrapper, 5),
 		config:    StartConfig(),
 	}
-	models.StartDB(app.config.url, app.config.key)
+	models.StartDB(app.config.dsn)
 
 	s := grpc.NewServer()
 	protocol.RegisterHalerServer(s, &Server{
@@ -104,8 +103,7 @@ func StartConfig() *Config {
 	config.port = viper.GetString("core.port")
 	config.dev = viper.GetBool("core.dev")
 
-	config.url = viper.GetString("database.url")
-	config.key = viper.GetString("database.key")
+	config.dsn = viper.GetString("database.dsn")
 
 	config.enabled = viper.GetBool("jwt.enabled")
 	config.secret = []byte(viper.GetString("jwt.secret"))
