@@ -17,6 +17,7 @@ func (app *Application) startDB() {
 	log.Println("spinned up supabase client")
 }
 
+// Use it only if truly needed, prefer getUserByID at all costs.
 func getUserByUsername(username string) (*User, error) {
 	var user []User
 	if err := db.DB.From("users").Select("*").Eq("username", username).Execute(&user); err != nil {

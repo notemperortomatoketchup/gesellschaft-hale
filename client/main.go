@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -74,10 +75,12 @@ func (app *Application) loadConfig() {
 	flag.BoolVar(&app.Client.cfg.core.devMode, "dev", false, "enable dev mode")
 	flag.Parse()
 
-	viper.AddConfigPath("./")
-	viper.SetConfigFile("config.yaml")
+	viper.AddConfigPath("../configurations/")
+	viper.SetConfigName("client")
 	viper.SetConfigType("yaml")
-	viper.ReadInConfig()
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("err reading config: %v", err)
+	}
 
 	app.Client.cfg.core.domain = viper.GetString("core.domain")
 

@@ -8,7 +8,9 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 	"google.golang.org/grpc"
 )
@@ -18,6 +20,7 @@ type Application struct {
 	Clients   sync.Map
 	RequestCh chan *protocol.RequestJobWrapper
 	Results   sync.Map
+	Fiber     *fiber.App
 }
 
 type Server struct {
@@ -67,4 +70,8 @@ func main() {
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, syscall.SIGTERM, syscall.SIGINT)
 	<-terminate
+
+	if err := app.Fiber.ShutdownWithTimeout(45 * time.Second); err != nil {
+		log.Fatalf("graceful shutdown failed: %v", err)
+	}
 }

@@ -21,5 +21,5 @@
 go.work
 Dockerfile.*
 /protocol 
-config.yaml
+/configurations
 Makefile
