@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	postgrest_go "github.com/nedpals/postgrest-go/pkg"
 	"github.com/nedpals/supabase-go"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
@@ -15,6 +16,10 @@ var db *supabase.Client
 func StartDB(url, key string) {
 	db = supabase.CreateClient(url, key)
 	log.Println("spinned up supabase client")
+}
+
+func GenerateQuery(table string) *postgrest_go.RequestBuilder {
+	return db.DB.From(table)
 }
 
 // Use it only if truly needed, prefer getUserByID at all costs.

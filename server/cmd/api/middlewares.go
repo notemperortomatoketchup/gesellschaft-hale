@@ -24,10 +24,8 @@ func ErrorHandler() func(c *fiber.Ctx, err error) error {
 		// Set Content-Type: text/plain; charset=utf-8
 		c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		// Return status code with error message
-		return c.Status(code).JSON(struct {
-			Error string `json:"error"`
-		}{
-			Error: err.Error(),
+		return c.Status(code).JSON(fiber.Map{
+			"error": err.Error(),
 		})
 
 	}

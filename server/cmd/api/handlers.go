@@ -509,3 +509,19 @@ func (app *Application) handleCreateUser(c *fiber.Ctx) error {
 		Message: "Created user successfully",
 	})
 }
+
+type FinderFilter struct {
+	Region      string `json:"region"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+type FinderGetRequest struct {
+	Filters FinderFilter `json:"filter" validate:"omitempty"`
+}
+
+func (app *Application) handleFinderGet(c *fiber.Ctx) error {
+
+	return c.Status(fiber.StatusOK).JSON("")
+
+}

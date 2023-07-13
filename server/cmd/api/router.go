@@ -36,6 +36,9 @@ func (app *Application) StartRouter(f *fiber.App) {
 	campaign.Get("/results/:id<int>", app.handleGetResultsCampaign)
 	campaign.Delete("/results/:id<int>", app.handleDeleteResultsCampaign)
 
+	finder := api.Group("/finder")
+	finder.Post("/", app.handleFinderGet)
+
 	admin := api.Group("/admin")
 	admin.Use(adminOnlyMiddleware)
 
