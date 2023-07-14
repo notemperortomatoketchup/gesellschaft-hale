@@ -76,6 +76,7 @@ func (app *Application) loadConfig() {
 	flag.Parse()
 
 	viper.AddConfigPath("../configurations/")
+	viper.AddConfigPath(".")
 	viper.SetConfigName("client")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {

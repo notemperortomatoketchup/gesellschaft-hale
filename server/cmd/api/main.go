@@ -93,6 +93,7 @@ func StartConfig() *Config {
 	config := new(Config)
 
 	viper.AddConfigPath("../../../configurations/")
+	viper.AddConfigPath(".")
 	viper.SetConfigName("server")
 	viper.SetConfigType("yaml")
 
