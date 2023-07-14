@@ -17,12 +17,6 @@ func stepExtractMetadata(page *rod.Page, w *protocol.Website) {
 			}
 		}
 
-		if htmllang, err := page.Element(`html`); err == nil {
-			if lang, err := htmllang.Attribute("lang"); err == nil {
-				w.Language = append(w.Language, *lang)
-			}
-		}
-
 	})
 }
 
@@ -51,13 +45,12 @@ func stepExtractMails(page *rod.Page, w *protocol.Website) {
 	// add base url to the list of to extract, without adding it to the paths.
 	paths := w.Paths
 	paths = append(paths, w.BaseUrl)
-
+	socialPatterns := []string{"twitter.com", "facebook.com", "instagram.com", "linkedin.com", "dribbble.com", "behance.net"}
 	for _, path := range paths {
 		rod.Try(func() {
 			page.MustNavigate(path).MustWaitLoad()
 			body := page.MustElement("body").MustHTML()
 			mails := extractEmailsFromBody(body)
-
 			for _, mail := range mails {
 				if strings.Contains(mail, "mailto:") {
 					mail = normalizeMailTo(mail)
@@ -66,6 +59,15 @@ func stepExtractMails(page *rod.Page, w *protocol.Website) {
 				}
 				w.Mails = protocol.AppendUnique(w.Mails, mail)
 			}
+
+			anchors := page.MustElements("a[href]")
+			for _, a := range anchors {
+				href := *a.MustAttribute("href")
+				if has := strContains(href, socialPatterns...); has {
+					w.Socials = protocol.AppendUnique(w.Socials, href)
+				}
+			}
+
 		})
 	}
 }

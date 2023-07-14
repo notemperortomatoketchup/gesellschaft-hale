@@ -82,6 +82,7 @@ type WebsiteSQL struct {
 	Language    pq.StringArray `gorm:"type:text[]"`
 	Region      pq.StringArray `gorm:"type:text[]"`
 	Mails       pq.StringArray `gorm:"type:text[]"`
+	Socials     pq.StringArray `gorm:"type:text[]"`
 	Timeout     bool
 }
 
@@ -92,6 +93,7 @@ func (ws *WebsiteSQL) Transform() *protocol.Website {
 		Language: make([]string, len(ws.Language)),
 		Region:   make([]string, len(ws.Region)),
 		Mails:    make([]string, len(ws.Mails)),
+		Socials:  make([]string, len(ws.Socials)),
 	}
 
 	website.BaseUrl = ws.BaseUrl
@@ -110,6 +112,10 @@ func (ws *WebsiteSQL) Transform() *protocol.Website {
 		website.Mails = ws.Mails
 	}
 
+	if len(ws.Socials) != 0 {
+		website.Socials = ws.Socials
+	}
+
 	website.Title = ws.Title
 	website.Description = ws.Description
 	website.Timeout = ws.Timeout
@@ -124,6 +130,7 @@ func makeWebsiteSQL(w *protocol.Website) *WebsiteSQL {
 		Language: make([]string, len(w.Language)),
 		Region:   make([]string, len(w.Region)),
 		Mails:    make([]string, len(w.Mails)),
+		Socials:  make([]string, len(w.Socials)),
 	}
 	website.BaseUrl = w.BaseUrl
 	if len(w.Paths) != 0 {
@@ -139,6 +146,10 @@ func makeWebsiteSQL(w *protocol.Website) *WebsiteSQL {
 
 	if len(w.Mails) != 0 {
 		website.Mails = w.Mails
+	}
+
+	if len(w.Socials) != 0 {
+		website.Socials = w.Socials
 	}
 
 	website.Title = w.Title
@@ -167,6 +178,7 @@ func SaveWebsites(websites []*protocol.Website) {
 	for _, w := range websites {
 		wg.Add(1)
 		go func(wb *protocol.Website) {
+			defer wg.Done()
 			if wb.Timeout {
 				return
 			}
@@ -177,16 +189,15 @@ func SaveWebsites(websites []*protocol.Website) {
 					log.Printf("failed to save %s: %v", wb.BaseUrl, err)
 				}
 				return
+			} else {
+				merged := CompareUpdateWebsite(wb, found)
+				if err := db.Table("websites").Where("base_url = ?", wb.BaseUrl).Save(makeWebsiteSQL(merged)).Error; err != nil {
+					log.Printf("failed to update %s: %v", wb.BaseUrl, err)
+				}
 			}
 
-			merged := CompareUpdateWebsite(wb, found)
-			if err := db.Table("websites").Where("base_url = ?", wb.BaseUrl).Save(makeWebsiteSQL(merged)).Error; err != nil {
-				log.Printf("failed to update %s: %v", wb.BaseUrl, err)
-			}
-			defer wg.Done()
 		}(w)
 	}
-
 	wg.Wait()
 }
 
