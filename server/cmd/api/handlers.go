@@ -83,7 +83,7 @@ func (app *Application) handleKeyword(c *fiber.Ctx) error {
 		return err
 	}
 
-	results, err := app.getKeywordResults(request.Keyword, request.Pages, request.Domain)
+	results, err := app.getKeywordResults(request.Keyword, request.Pages, request.Domain, true)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 		return err
 	}
 
-	scraped, err := app.getKeywordResults(request.Keyword, request.Pages, request.Domain)
+	scraped, err := app.getKeywordResults(request.Keyword, request.Pages, request.Domain, false) // we don't save as we'll proceed with the results.
 	if err != nil {
 		return err
 	}

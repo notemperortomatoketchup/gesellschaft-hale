@@ -192,7 +192,7 @@ func (app *Application) getMailsFromWebsites(websites []*protocol.Website, metho
 	return results, nil
 }
 
-func (app *Application) getKeywordResults(kw string, pages int, domain string) ([]*protocol.Website, error) {
+func (app *Application) getKeywordResults(kw string, pages int, domain string, save bool) ([]*protocol.Website, error) {
 	reqId := protocol.GenerateId()
 	client, ok := app.GetAvailableClient(0)
 	if !ok {
@@ -217,7 +217,9 @@ func (app *Application) getKeywordResults(kw string, pages int, domain string) (
 		return nil, internalError(err)
 	}
 
-	models.SaveWebsites(r.GetResult())
+	if save {
+		models.SaveWebsites(r.GetResult())
+	}
 
 	return r.GetResult(), nil
 }

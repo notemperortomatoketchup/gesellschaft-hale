@@ -2,6 +2,7 @@ package models
 
 import (
 	"log"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/wotlk888/gesellschaft-hale/protocol"
+	"github.com/wotlk888/gesellschaft-hale/server/util"
 )
 
 var db *gorm.DB
@@ -161,20 +163,59 @@ func SaveWebsites(websites []*protocol.Website) {
 	for _, w := range websites {
 		wg.Add(1)
 		go func(wb *protocol.Website) {
+			if wb.Timeout {
+				return
+			}
 			found, _ := GetWebsite(wb.BaseUrl)
 			// update or insert if not found
 			if found == nil {
 				if err := db.Table("websites").Create(makeWebsiteSQL(wb)).Error; err != nil {
 					log.Printf("failed to save %s: %v", wb.BaseUrl, err)
 				}
-			} else {
-				if err := db.Table("websites").Where("base_url = ?", wb.BaseUrl).Save(makeWebsiteSQL(wb)).Error; err != nil {
-					log.Printf("failed to update %s: %v", wb.BaseUrl, err)
-				}
+				return
+			}
+
+			merged := CompareUpdateWebsite(wb, found)
+			if err := db.Table("websites").Where("base_url = ?", wb.BaseUrl).Save(makeWebsiteSQL(merged)).Error; err != nil {
+				log.Printf("failed to update %s: %v", wb.BaseUrl, err)
 			}
 			defer wg.Done()
 		}(w)
 	}
 
 	wg.Wait()
+}
+
+// take the two websites, first the new value, and second the old value.
+// Return a website that contains both merged, with conservation of equals
+// appending unique of the slices, and erasement of difference (new wins on old)
+// bool is for is the same or not
+func CompareUpdateWebsite(new, old *protocol.Website) *protocol.Website {
+	merged := old
+
+	if equal := util.AssertEqual(new.Title, old.Title); !equal {
+		merged.Title = new.Title
+	}
+
+	if equal := util.AssertEqual(new.Description, old.Description); !equal {
+		merged.Description = new.Description
+	}
+
+	if equal := reflect.DeepEqual(new.Mails, old.Mails); !equal {
+		merged.Mails = protocol.AppendUnique(merged.Mails, new.Mails...)
+	}
+
+	if equal := reflect.DeepEqual(new.Paths, old.Paths); !equal {
+		merged.Paths = protocol.AppendUnique(merged.Paths, new.Paths...)
+	}
+
+	if equal := reflect.DeepEqual(new.Language, old.Language); !equal {
+		merged.Language = protocol.AppendUnique(merged.Language, new.Language...)
+	}
+
+	if equal := reflect.DeepEqual(new.Region, old.Region); !equal {
+		merged.Region = protocol.AppendUnique(merged.Region, new.Region...)
+	}
+
+	return merged
 }
