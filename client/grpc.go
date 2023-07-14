@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -43,6 +44,7 @@ func (app *Application) resolveDomain() string {
 func (app *Application) initClient() error {
 	id := protocol.GenerateId()
 	ip := app.resolveDomain()
+	fmt.Println("ip ->", ip)
 
 	conn, err := grpc.Dial(ip+":50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

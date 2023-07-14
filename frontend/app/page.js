@@ -39,9 +39,18 @@ export default function Home() {
     setIsLoading(true);
     const splittedUrls = urls.split(" ");
     await axios
-      .post("https://api.gesellschaft.studio:8443/api/mail", {
-        urls: splittedUrls,
-      })
+      .post(
+        "https://api.gesellschaft.studio:8443/api/getmails",
+        {
+          urls: splittedUrls,
+        },
+        {
+          headers: {
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTUsInJvbGUiOjAsInVzZXJuYW1lIjoiZnJvbnRlbmQifQ.M979VNgKzFHsFAnqu_9q3DKJVC5bH7DG2nfrkrd5DBY",
+          },
+        }
+      )
       .then((response) => {
         setResult(response.data.data);
       })
