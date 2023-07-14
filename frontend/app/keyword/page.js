@@ -39,10 +39,19 @@ export default function page() {
     setIsLoading(true);
 
     await axios
-      .post("https://api.gesellschaft.studio:8443/api/keywordmail", {
-        keyword: keyword,
-        pages: 10,
-      })
+      .post(
+        "https://api.gesellschaft.studio:8443/api/keywordmail",
+        {
+          keyword: keyword,
+          pages: 10,
+        },
+        {
+          headers: {
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTUsInJvbGUiOjAsInVzZXJuYW1lIjoiZnJvbnRlbmQifQ.M979VNgKzFHsFAnqu_9q3DKJVC5bH7DG2nfrkrd5DBY",
+          },
+        }
+      )
       .then((response) => {
         console.log(response);
         setResult(response.data.data);
