@@ -83,8 +83,6 @@ func (e *Engine) scrapeKeyword(kw string, pages int, domain string) ([]*protocol
 	kw = strings.ReplaceAll(kw, " ", "+") // for send http
 	results := new(Results)
 
-	fmt.Println(langageBaseLink)
-
 	var seen sync.Map
 	var wg sync.WaitGroup
 

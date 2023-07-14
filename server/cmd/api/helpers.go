@@ -160,14 +160,13 @@ func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol
 
 func (app *Application) getMailsFromWebsites(websites []*protocol.Website, method int) ([]*protocol.Website, error) {
 	var results []*protocol.Website
-	var urls []string
 	reqId := protocol.GenerateId()
 
 	if method == METHOD_FAST {
 		results, websites = scrapeFilterWebsites(websites)
 	}
 
-	if len(urls) != 0 || method == METHOD_SLOW {
+	if len(websites) != 0 || method == METHOD_SLOW {
 		client, ok := app.GetAvailableClient(int32(len(websites)))
 		if !ok {
 			return nil, internalError(protocol.ErrNoBrowserAvailable)
