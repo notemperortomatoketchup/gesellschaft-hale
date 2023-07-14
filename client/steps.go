@@ -7,9 +7,29 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 )
 
+func stepExtractMetadata(page *rod.Page, w *protocol.Website) {
+	rod.Try(func() {
+		page.MustNavigate(w.BaseUrl).MustWaitLoad()
+		w.Title = page.MustInfo().Title
+		if metadesc, err := page.Element(`meta[name="description"]`); err == nil {
+			if desc, err := metadesc.Attribute("content"); err == nil {
+				w.Description = *desc
+			}
+		}
+
+		if htmllang, err := page.Element(`html`); err == nil {
+			if lang, err := htmllang.Attribute("lang"); err == nil {
+				w.Language = append(w.Language, *lang)
+			}
+		}
+
+	})
+}
+
 func stepExtractPaths(page *rod.Page, w *protocol.Website, patterns []string) {
 	rod.Try(func() {
 		page.MustNavigate(w.BaseUrl).MustWaitLoad()
+
 		anchors := page.MustElements("a[href]")
 		for _, a := range anchors {
 			href := *a.MustAttribute("href")

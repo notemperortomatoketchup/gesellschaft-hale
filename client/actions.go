@@ -23,6 +23,7 @@ func actionExtractMails(b *Browser, w *protocol.Website) error {
 			return
 		}
 
+		stepExtractMetadata(page, w)
 		stepExtractPaths(page, w, patterns)
 		stepExtractMails(page, w)
 		successCh <- struct{}{}

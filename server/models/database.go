@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"log"
 	"reflect"
 	"strings"
@@ -151,6 +152,9 @@ func GetWebsite(url string) (*protocol.Website, error) {
 	url = strings.TrimSuffix(url, "/")
 
 	if err := db.Table("websites").Model(WebsiteSQL{}).Where("base_url = ?", url).First(sqlWebsite).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, protocol.ErrWebsiteNotFound
+		}
 		return nil, err
 	}
 

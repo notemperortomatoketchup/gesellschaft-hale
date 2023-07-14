@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"
@@ -84,9 +83,9 @@ func main() {
 	signal.Notify(terminate, syscall.SIGTERM, syscall.SIGINT)
 	<-terminate
 
-	if err := app.fiber.ShutdownWithTimeout(45 * time.Second); err != nil {
-		log.Fatalf("graceful shutdown failed: %v", err)
-	}
+	// if err := app.fiber.ShutdownWithTimeout(45 * time.Second); err != nil {
+	// 	log.Fatalf("graceful shutdown failed: %v", err)
+	// }
 }
 
 func StartConfig() *Config {

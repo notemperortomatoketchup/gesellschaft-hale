@@ -102,7 +102,7 @@ func scrapeFilter(urls []string) ([]*protocol.Website, []string) {
 		}
 
 		wg.Wait()
-		defer cancel()
+		cancel()
 	}()
 
 mainloop:
