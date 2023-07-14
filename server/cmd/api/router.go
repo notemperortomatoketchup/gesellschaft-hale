@@ -24,6 +24,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 	api.Post("/keywordmail", app.handleKeywordMails)
 
 	account := api.Group("/account")
+	account.Get("/info", app.handleAccountInfo)
 	account.Patch("/password/change", app.handleChangePassword)
 	account.Post("/password/reset", app.handleResetPassword)
 
@@ -35,6 +36,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 	campaign.Delete("/:id<int>", app.handleDeleteCampaign)
 	campaign.Get("/results/:id<int>", app.handleGetResultsCampaign)
 	campaign.Delete("/results/:id<int>", app.handleDeleteResultsCampaign)
+	campaign.Get("/sync/:id<int>", app.handleCampaignSync)
 
 	finder := api.Group("/finder")
 	finder.Post("/", app.handleFinderGet)

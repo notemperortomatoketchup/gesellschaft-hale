@@ -15,3 +15,7 @@ func AssertEqual(lhs, rhs string) bool {
 
 	return lhs == rhs
 }
+
+func PtrBool(v bool) *bool {
+	return &v
+}

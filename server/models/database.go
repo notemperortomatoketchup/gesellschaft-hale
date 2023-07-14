@@ -65,13 +65,18 @@ func GetAllUsers() ([]User, error) {
 }
 
 func GetCampaign(id uint) (*Campaign, error) {
-	campaign := new(Campaign)
+	c := new(Campaign)
 
-	if err := db.Table("campaigns").First(campaign, id).Error; err != nil {
+	if err := db.Table("campaigns").First(c, id).Error; err != nil {
 		return nil, err
 	}
 
-	return campaign, nil
+	// spin up notion if needed, makes it easier to interact iwth later on.
+	if c.NotionIntegrated {
+		c.StartNotionClient(c.OwnerID)
+	}
+
+	return c, nil
 }
 
 type WebsiteSQL struct {

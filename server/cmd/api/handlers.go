@@ -1,9 +1,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"sync"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sethvargo/go-password/password"
@@ -33,6 +31,11 @@ type DomainOpts struct {
 
 type TitleRequest struct {
 	Title string `json:"title" validate:"required,min=3,max=32"`
+}
+
+type CreateCampaignRequest struct {
+	TitleRequest
+	LinkNotion bool `json:"notion_integration"`
 }
 
 type UrlsRequest struct {
@@ -244,6 +247,15 @@ func (app *Application) handleResetPassword(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 
 }
+
+func (app *Application) handleAccountInfo(c *fiber.Ctx) error {
+	u, err := models.GetUserFromJWT(c)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(u)
+}
 func (app *Application) handleChangePassword(c *fiber.Ctx) error {
 	request := new(ChangePasswordRequest)
 
@@ -274,7 +286,7 @@ func (app *Application) handleChangePassword(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
-	request := new(TitleRequest)
+	request := new(CreateCampaignRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -285,7 +297,7 @@ func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
 		return err
 	}
 
-	campaign, err := models.CreateCampaign(*u.ID, request.Title)
+	campaign, err := models.CreateCampaign(*u.ID, request.Title, request.LinkNotion)
 	if err != nil {
 		return err
 	}
@@ -326,31 +338,12 @@ func (app *Application) handleGetResultsCampaign(c *fiber.Ctx) error {
 		return badRequest(protocol.ErrCampaignEmpty)
 	}
 
-	websitesCh := make(chan *protocol.Website, 0)
-	ctx, cancel := context.WithCancel(context.Background())
-	// go func so we can select, and channel prevent raec condition for writing as blocking
-	go func() {
-		var wg sync.WaitGroup
-		for _, url := range campaign.Websites {
-			wg.Add(1)
-			go func(w string) {
-				defer wg.Done()
-				website, _ := models.GetWebsite(w)
-				websitesCh <- website
-			}(url)
-		}
-		wg.Wait()
-		cancel()
-	}()
-mainloop:
-	for {
-		select {
-		case <-ctx.Done():
-			break mainloop
-		case w := <-websitesCh:
-			response.Websites = append(response.Websites, w)
-		}
+	results, err := campaign.GetResults()
+	if err != nil {
+		return err
 	}
+
+	response.Websites = results
 
 	return c.Status(fiber.StatusOK).JSON(response)
 }
@@ -394,6 +387,22 @@ func (app *Application) handleEditCampaign(c *fiber.Ctx) error {
 
 }
 
+func (app *Application) handleCampaignSync(c *fiber.Ctx) error {
+	id, _ := getIDInLocals(c)
+	campaign, err := models.GetCampaign(id)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	if err := campaign.Sync(); err != nil {
+		return internalError(err)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(Message{
+		Message: "Synced",
+	})
+}
+
 func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 	request := new(UrlsRequest)
 
@@ -408,13 +417,19 @@ func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 	}
 
 	var has bool
+	var removedUrls []string
 	for _, w := range campaign.Websites {
 		if protocol.IsExists(request.Urls, w) {
 			if !has {
 				has = true
 			}
 			campaign.Websites = protocol.RemoveStrFromSlice(campaign.Websites, w)
+			removedUrls = append(removedUrls, w)
 		}
+	}
+
+	if campaign.NotionIntegrated {
+		campaign.NotionDeleteEntries(campaign.NotionDatabaseID, removedUrls...)
 	}
 
 	if !has {

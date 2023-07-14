@@ -11,10 +11,12 @@ const (
 )
 
 type User struct {
-	ID       *uint  `json:"id,omitempty" gorm:"id,primarykey"`
-	Username string `json:"username" gorm:"username"`
-	Hashed   string `json:"hashed_password" gorm:"hashed"`
-	Role     int    `json:"role" gorm:"role"`
+	ID           *uint  `json:"id,omitempty" gorm:"id,primarykey"`
+	Username     string `json:"username" gorm:"username"`
+	Hashed       string `json:"hashed_password" gorm:"hashed"`
+	Role         int    `json:"role" gorm:"role"`
+	NotionSecret string `json:"notion_secret" gorm:"notion_secret"`
+	NotionParent string `json:"notion_parent" gorm:"notion_parent"`
 }
 
 func (u *User) SetUsername(username string) *User {
