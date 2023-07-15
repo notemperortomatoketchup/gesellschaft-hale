@@ -3,10 +3,11 @@ package models
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
+	"strings"
 	"sync"
 
+	"github.com/dstotijn/go-notion"
 	"github.com/lib/pq"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 	"github.com/wotlk888/gesellschaft-hale/server/util"
@@ -20,9 +21,7 @@ type Campaign struct {
 	CreatedAt        string         `json:"created_at" gorm:"column:created_at"`
 	Websites         pq.StringArray `json:"websites" gorm:"type:text[]"` // array of websites db base_url reference
 	NotionIntegrated bool           `json:"notion_integrated" gorm:"notion_integrated"`
-	NotionPageID     string         `json:"notion_page_id" gorm:"column:notion_page_id"`
-	NotionDatabaseID string         `json:"notion_database_id" gorm:"column:notion_database_id"`
-	*NotionClient    `json:"-" gorm:"-"`
+	*NotionIntegration
 }
 
 func CreateCampaign(ownerID uint, title string, notion bool) (*Campaign, error) {
@@ -30,35 +29,59 @@ func CreateCampaign(ownerID uint, title string, notion bool) (*Campaign, error) 
 		return nil, protocol.ErrCampaignTitleLen
 	}
 
-	campaign := &Campaign{
-		OwnerID:   ownerID,
-		Title:     title,
-		CreatedAt: util.GetCurrentTime(),
-		Websites:  []string{},
+	c := &Campaign{
+		OwnerID:           ownerID,
+		Title:             title,
+		CreatedAt:         util.GetCurrentTime(),
+		Websites:          []string{},
+		NotionIntegration: new(NotionIntegration),
 	}
 
 	if notion {
-		u, err := GetUserByID(ownerID)
-		if err != nil {
+		if err := c.Link(); err != nil {
 			return nil, err
 		}
-
-		err = campaign.StartNotionClient(*u.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		page, db, err := campaign.NotionCreateCampaign(title)
-		if err != nil {
-			return nil, protocol.ErrNotionCreatePage
-		}
-
-		campaign.NotionIntegrated = true
-		campaign.NotionPageID = page.ID
-		campaign.NotionDatabaseID = db.ID
 	}
 
-	return campaign, nil
+	return c, nil
+}
+
+// Link instances the Notion Integration in order to be able to uses
+// Notion related utilities.
+func (c *Campaign) Link() error {
+	u, err := GetUserByID(c.OwnerID)
+	if err != nil {
+		return err
+	}
+
+	if u.NotionParent == "" || u.NotionSecret == "" {
+		return protocol.ErrNotionMissingCreds
+	}
+
+	c.NotionIntegration = &NotionIntegration{
+		Client:     notion.NewClient(u.NotionSecret),
+		ParentID:   u.NotionParent,
+		PageID:     c.PageID,
+		DatabaseID: c.DatabaseID,
+	}
+
+	if c.PageID == "" || c.DatabaseID == "" {
+		page, err := c.NotionIntegration.CreatePage(c.Title)
+		if err != nil {
+			return protocol.ErrNotionCreatePage
+		}
+
+		db, err := c.NotionIntegration.CreateDatabase(page.ID)
+		if err != nil {
+			return protocol.ErrNotionCreatePage
+		}
+
+		c.NotionIntegration.PageID = page.ID
+		c.NotionIntegration.DatabaseID = db.ID
+		c.NotionIntegrated = true
+	}
+
+	return nil
 }
 
 func (c *Campaign) Insert() error {
@@ -70,32 +93,25 @@ func (c *Campaign) Insert() error {
 }
 
 func (c *Campaign) Sync() error {
-	if c.NotionIntegrated == false || c.NotionClient == nil {
-		return protocol.ErrNotionMissingCreds
-	}
-
-	if err := c.NotionDeletePage(c.NotionPageID); err != nil {
-		return err
-	}
-
-	page, db, err := c.NotionCreateCampaign(c.Title)
-	if err != nil {
-		return err
-	}
-
+	// user asks to resync
 	results, err := c.GetResults()
 	if err != nil {
 		return err
 	}
-	fmt.Println("Results:", results)
 
-	c.NotionAddEntries(db.ID, results...)
-	c.NotionDatabaseID = db.ID
-	c.NotionPageID = page.ID
-
-	if err := c.Update(); err != nil {
+	// delete old database
+	if err := c.NotionIntegration.DeleteDatabase(); err != nil {
 		return err
 	}
+
+	// recreate
+	db, err := c.NotionIntegration.CreateDatabase(c.PageID)
+	if err != nil {
+		return err
+	}
+
+	c.NotionIntegration.DatabaseID = db.ID
+	c.NotionIntegration.AddEntry(results...)
 
 	return nil
 }
@@ -130,12 +146,22 @@ mainloop:
 	return websites, nil
 }
 func (c *Campaign) Delete() error {
+	if c.NotionIntegrated {
+		if err := c.NotionIntegration.DeletePage(c.PageID); err != nil {
+			// if it's already archived, it's ok to continue processing the deletion. Else, no.
+			if !strings.Contains(err.Error(), "that is archived") {
+				return err
+			}
+		}
+	}
+
 	if err := db.Table("campaigns").Delete(&Campaign{}, c.ID).Error; err != nil {
 		if errors.Is(gorm.ErrRecordNotFound, err) {
 			return protocol.ErrCampaignNotFound
 		}
 		return err
 	}
+
 	return nil
 }
 
@@ -161,7 +187,7 @@ func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {
 	}
 
 	if c.NotionIntegrated {
-		c.NotionClient.NotionAddEntries(c.NotionDatabaseID, websites...)
+		c.NotionIntegration.AddEntry(websites...)
 	}
 
 	return nil

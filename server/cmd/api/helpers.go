@@ -222,3 +222,18 @@ func (app *Application) getKeywordResults(kw string, pages int, domain string, s
 
 	return r.GetResult(), nil
 }
+
+func (r *EditUserRequest) Matches(u *models.User) {
+	if r.Username != "" {
+		u.SetUsername(r.Username)
+	}
+
+	if r.NotionParent != "" {
+		u.SetNotionParent(r.NotionParent)
+	}
+
+	if r.NotionSecret != "" {
+		u.SetNotionSecret(r.NotionSecret)
+	}
+
+}

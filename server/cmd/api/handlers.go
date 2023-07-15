@@ -70,7 +70,9 @@ type ChangePasswordRequest struct {
 }
 
 type EditUserRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=32"`
+	Username     string `json:"username" validate:"omitempty,min=3,max=32"`
+	NotionSecret string `json:"notion_secret"  gorm:"notion_secret_id"`
+	NotionParent string `json:"notion_parent" gorm:"notion_parent_id"`
 }
 
 func (app *Application) handleKeyword(c *fiber.Ctx) error {
@@ -248,6 +250,28 @@ func (app *Application) handleResetPassword(c *fiber.Ctx) error {
 
 }
 
+func (app *Application) handleAccountEdit(c *fiber.Ctx) error {
+	request := new(EditUserRequest)
+
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
+	}
+
+	u, err := models.GetUserFromJWT(c)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	request.Matches(u)
+
+	if err := u.Update(); err != nil {
+		return internalError(err)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(Message{
+		Message: "Edited account successfully",
+	})
+}
 func (app *Application) handleAccountInfo(c *fiber.Ctx) error {
 	u, err := models.GetUserFromJWT(c)
 	if err != nil {
@@ -429,7 +453,7 @@ func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 	}
 
 	if campaign.NotionIntegrated {
-		campaign.NotionDeleteEntries(campaign.NotionDatabaseID, removedUrls...)
+		campaign.NotionIntegration.DeleteEntry(removedUrls...)
 	}
 
 	if !has {
@@ -491,9 +515,7 @@ func (app *Application) handleEditUser(c *fiber.Ctx) error {
 		return err
 	}
 
-	if request.Username != "" {
-		u.SetUsername(request.Username)
-	}
+	request.Matches(u)
 
 	if err := u.Update(); err != nil {
 		return err

@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -71,11 +72,14 @@ func GetCampaign(id uint) (*Campaign, error) {
 		return nil, err
 	}
 
-	// spin up notion if needed, makes it easier to interact iwth later on.
+	//link the campaign to the Notion Client if it's integrated.
 	if c.NotionIntegrated {
-		c.StartNotionClient(c.OwnerID)
+		if err := c.Link(); err != nil {
+			return nil, err
+		}
 	}
 
+	fmt.Printf("initialized Notion -> %+v", *c.NotionIntegration)
 	return c, nil
 }
 

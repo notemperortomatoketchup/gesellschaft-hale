@@ -19,22 +19,6 @@ type User struct {
 	NotionParent string `json:"notion_parent" gorm:"notion_parent"`
 }
 
-func (u *User) SetUsername(username string) *User {
-	u.Username = username
-	return u
-}
-
-func (u *User) SetPassword(password string) error {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	// store as text in postgres.
-	u.Hashed = string(hashed)
-	return nil
-}
-
 func (u *User) Insert() error {
 	if err := db.Create(&u).Error; err != nil {
 		return err
@@ -63,6 +47,32 @@ func (u *User) IsPassword(raw string) error {
 		return protocol.ErrIncorrectPassword
 	}
 	return nil
+}
+
+func (u *User) SetUsername(username string) *User {
+	u.Username = username
+	return u
+}
+
+func (u *User) SetPassword(password string) error {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// store as text in postgres.
+	u.Hashed = string(hashed)
+	return nil
+}
+
+func (u *User) SetNotionSecret(secret string) *User {
+	u.NotionSecret = secret
+	return u
+}
+
+func (u *User) SetNotionParent(parent string) *User {
+	u.NotionParent = parent
+	return u
 }
 
 func (u *User) HasCampaign(id uint) (bool, error) {

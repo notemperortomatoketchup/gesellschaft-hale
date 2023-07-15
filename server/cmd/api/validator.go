@@ -37,7 +37,7 @@ func ValidateStruct(v any) []*ErrorResponse {
 	err := validate.Struct(v)
 	if err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
-			msg := makeValidatonErrorMsg(err)
+			msg := makeValidationErrorMsg(err)
 			errors = append(errors, &msg)
 		}
 	}
@@ -45,7 +45,7 @@ func ValidateStruct(v any) []*ErrorResponse {
 	return errors
 }
 
-func makeValidatonErrorMsg(err validator.FieldError) ErrorResponse {
+func makeValidationErrorMsg(err validator.FieldError) ErrorResponse {
 	var response ErrorResponse
 
 	response.FailedField = err.Field()

@@ -27,6 +27,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 	account.Get("/info", app.handleAccountInfo)
 	account.Patch("/password/change", app.handleChangePassword)
 	account.Post("/password/reset", app.handleResetPassword)
+	account.Patch("/", app.handleAccountEdit)
 
 	campaign := api.Group("/campaign")
 	campaign.Use(campaignMiddleware)
