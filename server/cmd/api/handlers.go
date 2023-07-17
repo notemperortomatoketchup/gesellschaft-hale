@@ -273,6 +273,50 @@ func (app *Application) handleAccountEdit(c *fiber.Ctx) error {
 		Message: "Edited account successfully",
 	})
 }
+
+func (app *Application) handleAccountAddMailer(c *fiber.Ctx) error {
+	request := new(models.DialerCreds)
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
+	}
+
+	u, err := models.GetUserFromJWT(c)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	if err := request.Insert(*u.ID); err != nil {
+		return internalError(err)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(Message{
+		Message: "Added credentials for user.",
+	})
+}
+
+func (app *Application) handleAccountDeleteMailer(c *fiber.Ctx) error {
+	id, has := getIDInLocals(c)
+	if !has {
+		return badRequest(protocol.ErrInvalidID)
+	}
+
+	u, err := models.GetUserFromJWT(c)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	dialer, err := u.GetDialerByID(id)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	if err := dialer.Delete(); err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusNoContent).JSON("")
+}
+
 func (app *Application) handleAccountInfo(c *fiber.Ctx) error {
 	u, err := models.GetUserFromJWT(c)
 	if err != nil {
@@ -562,4 +606,39 @@ func (app *Application) handleFinderGet(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON("")
 
+}
+
+type MailerRequest struct {
+	From    string   `json:"from" validate:"required"`
+	Subject string   `json:"subject" validate:"required"`
+	Body    string   `json:"body" validate:"required"`
+	Mails   []string `json:"mails" validate:"required,min=1,dive,email"`
+}
+
+func (app *Application) handleMailerSend(c *fiber.Ctx) error {
+	request := new(MailerRequest)
+	if err := bind(c, request); err != nil {
+		return validationError(c, err)
+	}
+
+	u, err := models.GetUserFromJWT(c)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	dialerCreds, err := u.GetDialerByUsername(request.From)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	dialer, err := models.NewDialer(dialerCreds.Username, dialerCreds.Password)
+	if err != nil {
+		return badRequest(err)
+	}
+
+	failed := dialer.Send(request.Subject, request.Body, request.Mails...)
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"failed": failed,
+	})
 }

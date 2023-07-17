@@ -24,9 +24,11 @@ func (app *Application) StartRouter(f *fiber.App) {
 	api.Post("/keywordmail", app.handleKeywordMails)
 
 	account := api.Group("/account")
-	account.Get("/info", app.handleAccountInfo)
 	account.Patch("/password/change", app.handleChangePassword)
 	account.Post("/password/reset", app.handleResetPassword)
+	account.Post("/mailer", app.handleAccountAddMailer)
+	account.Delete("/mailer/:id<int>", app.handleAccountDeleteMailer)
+	account.Get("/info", app.handleAccountInfo)
 	account.Patch("/", app.handleAccountEdit)
 
 	campaign := api.Group("/campaign")
@@ -42,6 +44,9 @@ func (app *Application) StartRouter(f *fiber.App) {
 	finder := api.Group("/finder")
 	finder.Post("/", app.handleFinderGet)
 
+	mailer := api.Group("/mailer")
+	mailer.Post("/", app.handleMailerSend)
+
 	admin := api.Group("/admin")
 	admin.Use(adminOnlyMiddleware)
 
@@ -51,5 +56,4 @@ func (app *Application) StartRouter(f *fiber.App) {
 	users.Get("/:id<int>", app.handleGetUser)
 	users.Patch("/:id<int>", app.handleEditUser)
 	users.Delete("/:id<int>", app.handleDeleteUser)
-
 }

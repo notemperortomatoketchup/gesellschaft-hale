@@ -25,6 +25,11 @@ func strContains(str string, patterns ...string) bool {
 func constructSublink(baseURL, sublink string) (string, error) {
 	// in case the string starts with / or #, we unite the link with the base url to get
 	// full path
+
+	// cut all but the path of the sublink
+	u, _ := url.Parse(sublink)
+	sublink = u.Path
+
 	if strings.HasPrefix(sublink, "/") || strings.HasPrefix(sublink, "#") {
 		return baseURL + sublink, nil
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/go-rod/rod"
@@ -43,13 +44,14 @@ func stepExtractPaths(page *rod.Page, w *protocol.Website, patterns []string) {
 		anchors := page.MustElements("a[href]")
 		for _, a := range anchors {
 			href := *a.MustAttribute("href")
-
-			if strings.Contains(href, "mailto:") {
+			// important to do that to avoid issues with main domain having one of hte patterns string like .info
+			hrefParsed, _ := url.Parse(href)
+			if strings.Contains(hrefParsed.Path, "mailto:") {
 				continue
 			}
 
-			if has := strContains(href, patterns...); has {
-				if sublink, err := constructSublink(w.BaseUrl, href); err == nil {
+			if has := strContains(hrefParsed.Path, patterns...); has {
+				if sublink, err := constructSublink(w.BaseUrl, hrefParsed.Path); err == nil {
 					w.Paths = protocol.AppendUnique(w.Paths, sublink)
 				}
 			}

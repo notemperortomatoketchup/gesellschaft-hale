@@ -55,6 +55,8 @@ func makeValidationErrorMsg(err validator.FieldError) ErrorResponse {
 		response.Hint = "one of the urls has wrong format"
 	case "oneof":
 		response.Hint = "must be within the following values"
+	case "email":
+		response.Hint = "must be a valid email formatted"
 	default:
 		response.Hint = err.Tag()
 	}
