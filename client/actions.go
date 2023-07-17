@@ -27,11 +27,13 @@ func actionExtractMails(b *Browser, w *protocol.Website) error {
 		stepExtractPaths(page, w, patterns)
 		stepExtractMails(page, w)
 		successCh <- struct{}{}
-		if err := page.Close(); err != nil {
-			log.Printf("error closing page: %v", err)
-			errorCh <- err
-			return
-		}
+		defer func() {
+			if err := page.Close(); err != nil {
+				log.Printf("error closing page: %v", err)
+				errorCh <- err
+				return
+			}
+		}()
 	}()
 
 	select {

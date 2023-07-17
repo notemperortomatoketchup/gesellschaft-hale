@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -15,6 +16,7 @@ type Browser struct {
 	timeout  time.Duration
 	results  Results
 	active   bool
+	pages    rod.PagePool
 	queue    *Queue
 }
 
@@ -63,12 +65,22 @@ func (app *Application) newBrowser(id int, timeout time.Duration) *Browser {
 }
 
 func (b *Browser) cleanup() {
+	opens, err := b.instance.Pages()
+	if err != nil {
+		fmt.Println("err getting pages ->", err)
+	}
+
+	for _, page := range opens {
+		page.MustClose()
+	}
+
+	fmt.Println("cleaned browser, got ->", len(opens), "opened pages")
 	b.active = false
 	b.results = Results{}
 }
 
 func (b *Browser) createPage() (*rod.Page, error) {
-	page, err := b.instance.Page(proto.TargetCreateTarget{})
+	page, err := b.instance.MustIncognito().Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, err
 	}

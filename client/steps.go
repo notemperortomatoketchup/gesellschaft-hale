@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/go-rod/rod"
@@ -10,11 +11,26 @@ import (
 func stepExtractMetadata(page *rod.Page, w *protocol.Website) {
 	rod.Try(func() {
 		page.MustNavigate(w.BaseUrl).MustWaitLoad()
-		w.Title = page.MustInfo().Title
-		if metadesc, err := page.Element(`meta[name="description"]`); err == nil {
-			if desc, err := metadesc.Attribute("content"); err == nil {
-				w.Description = *desc
+
+		infos, err := page.Info()
+		if err != nil {
+			fmt.Println("Err extracting infos ->", err)
+		}
+		fmt.Println("Title ->", infos.Title)
+		w.Title = infos.Title
+
+		found, metadesc, err := page.Has(`meta[name="description"]`)
+		if err != nil {
+			fmt.Println("Err extract meta description ->", err)
+		}
+
+		if found {
+			desc, err := metadesc.Attribute("content")
+			if err != nil {
+				fmt.Println("Err extracting attribute ->", err)
 			}
+			w.Description = *desc
+
 		}
 
 	})

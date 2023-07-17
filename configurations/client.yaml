@@ -3,11 +3,11 @@ core:
   domain: api.gesellschaft.studio
 browser:
   no_sandbox: true
-  timeout: 50
+  timeout: 25
   queue:
     max_tasks: 100
-    max_running: 8
+    max_running: 6
 pool:
-  capacity: 2
+  capacity: 1
 engine:
   base_link: https://serpapi.com/search.json?engine=google&num=10&api_key=d8caeab6f4edbebf7dbb8701ac7002b34292ca538ac05090e65a9ced49ffe2f5&

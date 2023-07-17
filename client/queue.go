@@ -83,7 +83,7 @@ func (b *Browser) processQueue(jobs ...*Job) []*protocol.Website {
 						b.queue.running.Add(1)
 						err := j.action(b, j.website)
 						if err != nil {
-							log.Printf("error doing job: %v", err)
+							log.Printf("error doing job: %s: %v", j.website.BaseUrl, err)
 							if strings.Contains(err.Error(), "timed out") {
 								j.website.Timeout = true
 							}
