@@ -6,7 +6,7 @@ browser:
   timeout: 25
   queue:
     max_tasks: 100
-    max_running: 6
+    max_running: 8
 pool:
   capacity: 1
 engine:

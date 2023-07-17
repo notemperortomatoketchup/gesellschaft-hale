@@ -16,7 +16,6 @@ type Browser struct {
 	timeout  time.Duration
 	results  Results
 	active   bool
-	pages    rod.PagePool
 	queue    *Queue
 }
 
@@ -70,11 +69,12 @@ func (b *Browser) cleanup() {
 		fmt.Println("err getting pages ->", err)
 	}
 
-	for _, page := range opens {
-		page.MustClose()
+	if !opens.Empty() {
+		for _, page := range opens {
+			page.MustClose()
+		}
 	}
 
-	fmt.Println("cleaned browser, got ->", len(opens), "opened pages")
 	b.active = false
 	b.results = Results{}
 }
