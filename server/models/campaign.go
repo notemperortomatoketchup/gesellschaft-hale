@@ -101,7 +101,10 @@ func (c *Campaign) Sync() error {
 
 	// delete old database
 	if err := c.NotionIntegration.DeleteDatabase(); err != nil {
-		return err
+		// if we have not find, just create it again, surely a bug occured
+		if !strings.Contains(err.Error(), "not find database with ID") {
+			return err
+		}
 	}
 
 	// recreate
@@ -112,6 +115,10 @@ func (c *Campaign) Sync() error {
 
 	c.NotionIntegration.DatabaseID = db.ID
 	c.NotionIntegration.AddEntry(results...)
+
+	if err := c.Update(); err != nil {
+		return err
+	}
 
 	return nil
 }

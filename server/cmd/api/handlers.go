@@ -41,6 +41,7 @@ type CreateCampaignRequest struct {
 type UrlsRequest struct {
 	Urls []string `json:"urls" validate:"required,min=1,urls"`
 }
+
 type WebsitesResponse struct {
 	Websites []*protocol.Website `json:"data"`
 }
@@ -452,12 +453,12 @@ func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 		}
 	}
 
-	if campaign.NotionIntegrated {
-		campaign.NotionIntegration.DeleteEntry(removedUrls...)
-	}
-
 	if !has {
 		return badRequest(fmt.Errorf("no matching websites found"))
+	}
+
+	if campaign.NotionIntegrated {
+		campaign.NotionIntegration.DeleteEntry(removedUrls...)
 	}
 
 	if err := campaign.Update(); err != nil {
