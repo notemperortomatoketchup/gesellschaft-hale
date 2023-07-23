@@ -17,10 +17,19 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/server/util"
 )
 
-var db *gorm.DB
+var db *Database
+
+type Entity interface {
+	Get(id int)
+	Delete() error
+	Edit() error
+}
+
+type Database struct {
+	*gorm.DB
+}
 
 // Prevent postgres to return it as uint8 byte slice
-
 func StartDB(dsn string) {
 	sqldb, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  dsn,
@@ -30,9 +39,26 @@ func StartDB(dsn string) {
 		log.Fatalf("err spinning up postgres: %v", err)
 	}
 
-	db = sqldb
+	db = &Database{
+		sqldb,
+	}
+}
 
-	log.Printf("spinned up postgres")
+func (u User) Get(id int) *User {
+	return &u
+}
+
+func (u User) Delete() error {
+	return nil
+}
+
+func (u User) Edit() error {
+	hello(u)
+	return nil
+}
+
+func hello(e Entity) {
+
 }
 
 // Use it only if truly needed, prefer getUserByID at all costs.

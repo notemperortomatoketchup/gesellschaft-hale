@@ -12,7 +12,7 @@ import (
 )
 
 func (app *Application) StartServer() {
-	for range time.Tick(2 * time.Second) {
+	for range time.Tick(5 * time.Second) {
 		list := app.GetClientsList()
 		var clients []Client
 

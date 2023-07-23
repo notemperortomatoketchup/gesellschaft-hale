@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -84,10 +83,8 @@ func extractEmailsFromBody(bodyHTML string) []string {
 // them and to modify them without breaking changes. Especially since a lot of websites have differents practices
 func normalizeMailTo(s string) string {
 	if strings.Contains(s, "mailto:") {
-		fmt.Println("Got mailto to normalize ->", s)
 		s = normalizeString(s)
 		s = strings.TrimSpace(strings.Split(strings.TrimPrefix(s, "mailto:"), "?")[0])
-		fmt.Println("Normalized ->", s)
 		return s
 	}
 

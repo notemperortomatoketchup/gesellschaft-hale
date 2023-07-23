@@ -17,7 +17,6 @@ func stepExtractMetadata(page *rod.Page, w *protocol.Website) {
 		if err != nil {
 			fmt.Println("Err extracting infos ->", err)
 		}
-		fmt.Println("Title ->", infos.Title)
 		w.Title = infos.Title
 
 		found, metadesc, err := page.Has(`meta[name="description"]`)
@@ -85,7 +84,6 @@ func stepExtractMails(page *rod.Page, w *protocol.Website) {
 					w.Socials = protocol.AppendUnique(w.Socials, href)
 				}
 			}
-
 		})
 	}
 }
