@@ -17,17 +17,7 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/server/util"
 )
 
-var db *Database
-
-type Entity interface {
-	Get(id int)
-	Delete() error
-	Edit() error
-}
-
-type Database struct {
-	*gorm.DB
-}
+var db *gorm.DB
 
 // Prevent postgres to return it as uint8 byte slice
 func StartDB(dsn string) {
@@ -39,25 +29,7 @@ func StartDB(dsn string) {
 		log.Fatalf("err spinning up postgres: %v", err)
 	}
 
-	db = &Database{
-		sqldb,
-	}
-}
-
-func (u User) Get(id int) *User {
-	return &u
-}
-
-func (u User) Delete() error {
-	return nil
-}
-
-func (u User) Edit() error {
-	hello(u)
-	return nil
-}
-
-func hello(e Entity) {
+	db = sqldb
 
 }
 
