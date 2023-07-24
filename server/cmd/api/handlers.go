@@ -87,7 +87,7 @@ func (app *Application) handleKeyword(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (app *Application) handleMails(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,6 @@ func (app *Application) handleRegister(c *fiber.Ctx) error {
 	}
 
 	if err := user.Insert(); err != nil {
-		fmt.Printf("user -> %v", *user)
 		return internalError(err)
 	}
 
@@ -254,7 +253,7 @@ func (app *Application) handleResetPassword(c *fiber.Ctx) error {
 		Password string `json:"password"`
 	}{}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -285,7 +284,7 @@ func (app *Application) handleAccountEdit(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -307,7 +306,7 @@ func (app *Application) handleAccountAddMailer(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -327,7 +326,7 @@ func (app *Application) handleAccountDeleteMailer(c *fiber.Ctx) error {
 		return badRequest(protocol.ErrInvalidID)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -345,7 +344,7 @@ func (app *Application) handleAccountDeleteMailer(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleAccountInfo(c *fiber.Ctx) error {
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -359,7 +358,7 @@ func (app *Application) handleChangePassword(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -388,7 +387,7 @@ func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -648,7 +647,7 @@ func (app *Application) handleMailerSend(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromSession(c)
+	u, err := sessions.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
