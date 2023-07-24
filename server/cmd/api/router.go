@@ -22,12 +22,21 @@ func (app *Application) StartRouter(f *fiber.App) {
 	api.Post("/keywordmail", app.handleKeywordMails)
 
 	account := api.Group("/account")
-	account.Patch("/password/change", app.handleChangePassword)
-	account.Post("/password/reset", app.handleResetPassword)
-	account.Post("/mailer", app.handleAccountAddMailer)
-	account.Delete("/mailer/:id<int>", app.handleAccountDeleteMailer)
 	account.Get("/info", app.handleAccountInfo)
-	account.Patch("/", app.handleAccountEdit)
+	account.Patch("/edit", app.handleAccountEdit)
+
+	session := account.Group("/session")
+	session.Get("/", app.handleGetSessions)
+	session.Delete("/:id<int>", app.handleDeleteSession)
+	session.Delete("/", app.handleDeleteAllSessions)
+
+	password := account.Group("/password")
+	password.Patch("/change", app.handleChangePassword)
+	password.Post("/reset", app.handleResetPassword)
+
+	integration := account.Group("/integration")
+	integration.Post("/mailer", app.handleAccountAddMailer)
+	integration.Delete("/mailer/:id<int>", app.handleAccountDeleteMailer)
 
 	campaign := api.Group("/campaign")
 	campaign.Use(middlewares.CampaignChecker)
@@ -35,9 +44,11 @@ func (app *Application) StartRouter(f *fiber.App) {
 	campaign.Get("/:id<int>", app.handleGetCampaign)
 	campaign.Patch("/:id<int>", app.handleEditCampaign)
 	campaign.Delete("/:id<int>", app.handleDeleteCampaign)
-	campaign.Get("/results/:id<int>", app.handleGetResultsCampaign)
-	campaign.Delete("/results/:id<int>", app.handleDeleteResultsCampaign)
 	campaign.Get("/sync/:id<int>", app.handleCampaignSync)
+
+	result := campaign.Group("/results")
+	result.Get("/:id<int>", app.handleGetResultsCampaign)
+	result.Delete("/:id<int>", app.handleDeleteResultsCampaign)
 
 	finder := api.Group("/finder")
 	finder.Post("/", app.handleFinderGet)

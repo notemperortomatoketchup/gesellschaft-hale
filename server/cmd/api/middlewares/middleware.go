@@ -1,24 +1,31 @@
 package middlewares
 
 import (
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
-	"github.com/wotlk888/gesellschaft-hale/server/cmd/api/sessions"
 	"github.com/wotlk888/gesellschaft-hale/server/models"
 )
 
 func SessionChecker(c *fiber.Ctx) error {
-	s, err := sessions.GetSession(c)
+	s, err := models.GetSession(c)
 	if err != nil {
 		return err
 	}
 
 	if expired := s.IsExpired(); expired {
 		return protocol.ErrSessionExpired
+	}
+
+	// update session, set it to 48 hours again to expires.
+	// not mandatory to return on error.
+	if err := s.UpdateExpiration(48 * time.Hour); err != nil {
+		log.Println("UpdateExpiration(): ", err)
 	}
 
 	u, err := models.GetUserByID(s.UserID)
@@ -32,7 +39,7 @@ func SessionChecker(c *fiber.Ctx) error {
 }
 
 func AdminOnly(c *fiber.Ctx) error {
-	u, err := sessions.GetUserFromSession(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -54,7 +61,7 @@ func LocalsStorer(c *fiber.Ctx) error {
 }
 
 func CampaignChecker(c *fiber.Ctx) error {
-	u, err := sessions.GetUserFromSession(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}

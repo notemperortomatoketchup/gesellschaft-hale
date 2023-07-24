@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"
@@ -28,7 +28,6 @@ type Config struct {
 	CoreConfig
 	JWTConfig
 	DatabaseConfig
-	SessionConfig
 }
 
 type CoreConfig struct {
@@ -43,10 +42,6 @@ type DatabaseConfig struct {
 type JWTConfig struct {
 	enabled bool
 	secret  []byte
-}
-
-type SessionConfig struct {
-	duration time.Duration
 }
 
 type Server struct {
@@ -85,6 +80,18 @@ func main() {
 	go app.StartServer()
 	go app.StartAPI()
 
+	u, err := models.GetUserByID(12)
+	if err != nil {
+		log.Fatal("err ->", err)
+	}
+
+	sessions, err := u.GetSessions()
+	if err != nil {
+		log.Fatal("err ->", err)
+	}
+
+	fmt.Println("Sessions ->", sessions)
+
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, syscall.SIGTERM, syscall.SIGINT)
 	<-terminate
@@ -113,8 +120,6 @@ func StartConfig() *Config {
 
 	config.enabled = viper.GetBool("jwt.enabled")
 	config.secret = []byte(viper.GetString("jwt.secret"))
-
-	config.duration = time.Duration(viper.GetInt("session.duration")) * time.Hour
 
 	return config
 }

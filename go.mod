@@ -6,7 +6,6 @@ require (
 	github.com/dstotijn/go-notion v0.11.0
 	github.com/go-rod/rod v0.113.3
 	github.com/gofiber/fiber/v2 v2.48.0
-	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.3.0
 	github.com/lib/pq v1.10.9
 	github.com/sethvargo/go-password v0.2.0

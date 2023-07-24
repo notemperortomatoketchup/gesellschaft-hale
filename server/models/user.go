@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/wotlk888/gesellschaft-hale/protocol"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -108,4 +110,14 @@ func (u *User) HasCampaign(id uint) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (u *User) GetSessions() ([]*Session, error) {
+	var sessions []*Session
+
+	if err := DB.Where("user_id = ?", fmt.Sprint(*u.ID)).Find(&sessions).Error; err != nil {
+		return nil, err
+	}
+
+	return sessions, nil
 }
