@@ -20,21 +20,21 @@ type User struct {
 }
 
 func (u *User) Insert() error {
-	if err := db.Create(&u).Error; err != nil {
+	if err := DB.Create(&u).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func (u *User) Update() error {
-	if err := db.Save(&u).Error; err != nil {
+	if err := DB.Save(&u).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func (u *User) Delete() error {
-	if err := db.Delete(&u).Error; err != nil {
+	if err := DB.Delete(&u).Error; err != nil {
 		return err
 	}
 	return nil
@@ -77,7 +77,7 @@ func (u *User) SetNotionParent(parent string) *User {
 
 func (u *User) GetDialers() ([]DialerCreds, error) {
 	var creds []DialerCreds
-	if err := db.Table("gmails").Where("owner_id = ?", u.ID).Find(&creds).Error; err != nil {
+	if err := DB.Table("gmails").Where("owner_id = ?", u.ID).Find(&creds).Error; err != nil {
 		return nil, err
 	}
 	return creds, nil
@@ -85,7 +85,7 @@ func (u *User) GetDialers() ([]DialerCreds, error) {
 
 func (u *User) GetDialerByID(id uint) (*DialerCreds, error) {
 	var cred DialerCreds
-	if err := db.Table("gmails").Where("owner_id = ? AND id = ?", u.ID, id).First(&cred).Error; err != nil {
+	if err := DB.Table("gmails").Where("owner_id = ? AND id = ?", u.ID, id).First(&cred).Error; err != nil {
 		return nil, err
 	}
 
@@ -94,7 +94,7 @@ func (u *User) GetDialerByID(id uint) (*DialerCreds, error) {
 
 func (u *User) GetDialerByUsername(username string) (*DialerCreds, error) {
 	var cred DialerCreds
-	if err := db.Table("gmails").Where("owner_id = ? AND username = ?", u.ID, username).First(&cred).Error; err != nil {
+	if err := DB.Table("gmails").Where("owner_id = ? AND username = ?", u.ID, username).First(&cred).Error; err != nil {
 		return nil, err
 	}
 
@@ -103,7 +103,7 @@ func (u *User) GetDialerByUsername(username string) (*DialerCreds, error) {
 
 func (u *User) HasCampaign(id uint) (bool, error) {
 	var campaign Campaign
-	if err := db.Table("campaigns").Where("owner_id = ? AND id = ?", u.ID, id).First(&campaign).Error; err != nil {
+	if err := DB.Table("campaigns").Where("owner_id = ? AND id = ?", u.ID, id).First(&campaign).Error; err != nil {
 		return false, err
 	}
 

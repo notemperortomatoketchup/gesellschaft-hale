@@ -1,24 +1,22 @@
 package main
 
 import (
-	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/wotlk888/gesellschaft-hale/server/cmd/api/middlewares"
+	"gorm.io/gorm"
 )
 
-func (app *Application) StartRouter(f *fiber.App) {
-	f.Use(cors.New())
+var db *gorm.DB
 
+func (app *Application) StartRouter(f *fiber.App) {
 	auth := f.Group("/auth")
 	auth.Post("/register", app.handleRegister)
 	auth.Post("/login", app.handleLogin)
+	auth.Get("/logout", app.handleLogout)
 
 	api := f.Group("/api")
-	api.Use(jwtware.New(jwtware.Config{
-		SigningKey:   jwtware.SigningKey{Key: app.config.secret},
-		ErrorHandler: ErrorHandler(),
-	}))
-	api.Use(localsIDMiddleware)
+	api.Use(middlewares.SessionChecker)
+	api.Use(middlewares.LocalsStorer)
 	api.Post("/getmails", app.handleMails)
 	api.Post("/keyword", app.handleKeyword)
 	api.Post("/keywordmail", app.handleKeywordMails)
@@ -32,7 +30,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 	account.Patch("/", app.handleAccountEdit)
 
 	campaign := api.Group("/campaign")
-	campaign.Use(campaignMiddleware)
+	campaign.Use(middlewares.CampaignChecker)
 	campaign.Post("/create", app.handleCreateCampaign)
 	campaign.Get("/:id<int>", app.handleGetCampaign)
 	campaign.Patch("/:id<int>", app.handleEditCampaign)
@@ -48,7 +46,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 	mailer.Post("/", app.handleMailerSend)
 
 	admin := api.Group("/admin")
-	admin.Use(adminOnlyMiddleware)
+	admin.Use(middlewares.AdminOnly)
 
 	users := admin.Group("/users")
 	users.Get("/", app.handleGetAllUsers)

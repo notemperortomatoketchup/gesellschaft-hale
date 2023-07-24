@@ -27,14 +27,14 @@ type Sender struct {
 func (dc *DialerCreds) Insert(ownerID uint) error {
 	// we take id of the owner that want to insert it
 	dc.OwnerID = &ownerID
-	if err := db.Table("gmails").Create(&dc).Error; err != nil {
+	if err := DB.Table("gmails").Create(&dc).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func (dc *DialerCreds) Delete() error {
-	if err := db.Table("gmails").Delete(&dc).Error; err != nil {
+	if err := DB.Table("gmails").Delete(&dc).Error; err != nil {
 		return err
 	}
 	return nil

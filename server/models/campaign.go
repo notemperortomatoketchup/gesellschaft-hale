@@ -85,7 +85,7 @@ func (c *Campaign) Link() error {
 }
 
 func (c *Campaign) Insert() error {
-	if err := db.Table("campaigns").Create(&c).Error; err != nil {
+	if err := DB.Table("campaigns").Create(&c).Error; err != nil {
 		return err
 	}
 
@@ -162,7 +162,7 @@ func (c *Campaign) Delete() error {
 		}
 	}
 
-	if err := db.Table("campaigns").Delete(&Campaign{}, c.ID).Error; err != nil {
+	if err := DB.Table("campaigns").Delete(&Campaign{}, c.ID).Error; err != nil {
 		if errors.Is(gorm.ErrRecordNotFound, err) {
 			return protocol.ErrCampaignNotFound
 		}
@@ -173,7 +173,7 @@ func (c *Campaign) Delete() error {
 }
 
 func (c *Campaign) Update() error {
-	if err := db.Table("campaigns").Save(&c).Error; err != nil {
+	if err := DB.Table("campaigns").Save(&c).Error; err != nil {
 		return err
 	}
 
@@ -189,7 +189,7 @@ func (c *Campaign) AddWebsites(websites ...*protocol.Website) error {
 		c.Websites = protocol.AppendUnique(c.Websites, w.BaseUrl)
 	}
 
-	if err := db.Table("campaigns").Save(&c).Error; err != nil {
+	if err := DB.Table("campaigns").Save(&c).Error; err != nil {
 		log.Printf("err adding to campaign update: %v", err)
 	}
 

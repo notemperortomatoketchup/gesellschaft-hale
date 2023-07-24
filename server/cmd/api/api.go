@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/wotlk888/gesellschaft-hale/server/cmd/api/middlewares"
 )
 
 func (app *Application) StartAPI() {
@@ -11,7 +12,7 @@ func (app *Application) StartAPI() {
 		Immutable:    true,
 		ServerHeader: "Fiber",
 		AppName:      "gesellschaft-hale",
-		ErrorHandler: ErrorHandler(),
+		ErrorHandler: middlewares.ErrorHandler,
 	})
 
 	app.StartRouter(app.fiber)

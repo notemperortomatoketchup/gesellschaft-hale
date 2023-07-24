@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sethvargo/go-password/password"
 	"github.com/wotlk888/gesellschaft-hale/protocol"
+	"github.com/wotlk888/gesellschaft-hale/server/cmd/api/middlewares"
+	"github.com/wotlk888/gesellschaft-hale/server/cmd/api/sessions"
 	"github.com/wotlk888/gesellschaft-hale/server/models"
 )
 
@@ -84,7 +87,7 @@ func (app *Application) handleKeyword(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -111,7 +114,7 @@ func (app *Application) handleMails(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -138,6 +141,11 @@ func (app *Application) handleMails(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 
+func (app *Application) Test(c *fiber.Ctx) error {
+	u := c.Locals("user").(models.User)
+	fmt.Println("User ->", u)
+	return nil
+}
 func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 	request := new(KeywordRequest)
 	response := new(WebsitesResponse)
@@ -146,7 +154,7 @@ func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -194,6 +202,21 @@ func (app *Application) handleRegister(c *fiber.Ctx) error {
 	})
 }
 
+func (app *Application) handleLogout(c *fiber.Ctx) error {
+	s, err := sessions.GetSession(c)
+	if err != nil {
+		return internalError(err)
+	}
+
+	if err := s.Delete(); err != nil {
+		return internalError(err)
+	}
+
+	c.ClearCookie("session_id")
+
+	return c.Status(fiber.StatusOK).JSON(s)
+}
+
 func (app *Application) handleLogin(c *fiber.Ctx) error {
 	request := new(AuthRequest)
 
@@ -211,15 +234,19 @@ func (app *Application) handleLogin(c *fiber.Ctx) error {
 		return badRequest(fmt.Errorf("%s", protocol.ErrInvalidCredentials))
 	}
 
-	// got user right, need to generate token jwt
-	token, err := models.GenerateJWT(app.config.secret, user)
+	session, err := sessions.New(*user.ID, app.config.duration)
 	if err != nil {
-		return internalError(fmt.Errorf("err generating jwt"))
+		return internalError(err)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"Token": token,
-	})
+	cookie := new(fiber.Cookie)
+	cookie.Name = "session_id"
+	cookie.Value = fmt.Sprint(session.ID)
+	cookie.HTTPOnly = true
+	cookie.Expires = time.Now().Add(app.config.duration)
+	c.Cookie(cookie)
+
+	return c.Status(fiber.StatusOK).JSON(session)
 }
 
 func (app *Application) handleResetPassword(c *fiber.Ctx) error {
@@ -227,7 +254,7 @@ func (app *Application) handleResetPassword(c *fiber.Ctx) error {
 		Password string `json:"password"`
 	}{}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -258,7 +285,7 @@ func (app *Application) handleAccountEdit(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -280,7 +307,7 @@ func (app *Application) handleAccountAddMailer(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -295,12 +322,12 @@ func (app *Application) handleAccountAddMailer(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleAccountDeleteMailer(c *fiber.Ctx) error {
-	id, has := getIDInLocals(c)
+	id, has := middlewares.GetIDInLocals(c)
 	if !has {
 		return badRequest(protocol.ErrInvalidID)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -318,7 +345,7 @@ func (app *Application) handleAccountDeleteMailer(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleAccountInfo(c *fiber.Ctx) error {
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}
@@ -332,7 +359,7 @@ func (app *Application) handleChangePassword(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -361,7 +388,7 @@ func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return err
 	}
@@ -381,7 +408,7 @@ func (app *Application) handleCreateCampaign(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleGetCampaign(c *fiber.Ctx) error {
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 
 	campaign, err := models.GetCampaign(id)
 	if err != nil {
@@ -393,7 +420,7 @@ func (app *Application) handleGetCampaign(c *fiber.Ctx) error {
 
 func (app *Application) handleGetResultsCampaign(c *fiber.Ctx) error {
 	response := new(WebsitesResponse)
-	id, has := getIDInLocals(c)
+	id, has := middlewares.GetIDInLocals(c)
 	if !has {
 		return badRequest(protocol.ErrInvalidID)
 	}
@@ -418,7 +445,7 @@ func (app *Application) handleGetResultsCampaign(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleDeleteCampaign(c *fiber.Ctx) error {
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 
 	campaign, err := models.GetCampaign(id)
 	if err != nil {
@@ -438,7 +465,7 @@ func (app *Application) handleEditCampaign(c *fiber.Ctx) error {
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
 	}
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 
 	campaign, err := models.GetCampaign(id)
 	if err != nil {
@@ -457,7 +484,7 @@ func (app *Application) handleEditCampaign(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleCampaignSync(c *fiber.Ctx) error {
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 	campaign, err := models.GetCampaign(id)
 	if err != nil {
 		return badRequest(err)
@@ -479,7 +506,7 @@ func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 	campaign, err := models.GetCampaign(id)
 	if err != nil {
 		return badRequest(err)
@@ -514,7 +541,7 @@ func (app *Application) handleDeleteResultsCampaign(c *fiber.Ctx) error {
 
 func (app *Application) handleGetUser(c *fiber.Ctx) error {
 	u := new(models.User)
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 
 	u, err := models.GetUserByID(id)
 	if err != nil {
@@ -534,7 +561,7 @@ func (app *Application) handleGetAllUsers(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleDeleteUser(c *fiber.Ctx) error {
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 
 	u, err := models.GetUserByID(id)
 	if err != nil {
@@ -549,7 +576,7 @@ func (app *Application) handleDeleteUser(c *fiber.Ctx) error {
 
 func (app *Application) handleEditUser(c *fiber.Ctx) error {
 	request := new(EditUserRequest)
-	id, _ := getIDInLocals(c)
+	id, _ := middlewares.GetIDInLocals(c)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -588,7 +615,7 @@ func (app *Application) handleCreateUser(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(Message{
-		Message: "Created user successfully",
+		Message: "created user successfully",
 	})
 }
 
@@ -621,7 +648,7 @@ func (app *Application) handleMailerSend(c *fiber.Ctx) error {
 		return validationError(c, err)
 	}
 
-	u, err := models.GetUserFromJWT(c)
+	u, err := models.GetUserFromSession(c)
 	if err != nil {
 		return badRequest(err)
 	}

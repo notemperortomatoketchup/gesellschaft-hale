@@ -20,10 +20,9 @@ func GenerateJWT(secret []byte, u *User) (string, error) {
 	return tokenStr, nil
 }
 
-func GetUserFromJWT(c *fiber.Ctx) (*User, error) {
-	user := c.Locals("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	id := uint(claims["id"].(float64))
+func GetUserFromSession(c *fiber.Ctx) (*User, error) {
+	user := c.Locals("user").(User)
+	id := *user.ID
 
 	u, err := GetUserByID(id)
 	if err != nil {

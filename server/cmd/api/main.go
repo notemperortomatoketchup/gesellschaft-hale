@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"
@@ -27,6 +28,7 @@ type Config struct {
 	CoreConfig
 	JWTConfig
 	DatabaseConfig
+	SessionConfig
 }
 
 type CoreConfig struct {
@@ -41,6 +43,10 @@ type DatabaseConfig struct {
 type JWTConfig struct {
 	enabled bool
 	secret  []byte
+}
+
+type SessionConfig struct {
+	duration time.Duration
 }
 
 type Server struct {
@@ -107,6 +113,8 @@ func StartConfig() *Config {
 
 	config.enabled = viper.GetBool("jwt.enabled")
 	config.secret = []byte(viper.GetString("jwt.secret"))
+
+	config.duration = time.Duration(viper.GetInt("session.duration")) * time.Hour
 
 	return config
 }

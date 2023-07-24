@@ -17,7 +17,7 @@ import (
 	"github.com/wotlk888/gesellschaft-hale/server/util"
 )
 
-var db *gorm.DB
+var DB *gorm.DB
 
 // Prevent postgres to return it as uint8 byte slice
 func StartDB(dsn string) {
@@ -29,14 +29,14 @@ func StartDB(dsn string) {
 		log.Fatalf("err spinning up postgres: %v", err)
 	}
 
-	db = sqldb
+	DB = sqldb
 
 }
 
 // Use it only if truly needed, prefer getUserByID at all costs.
 func GetUserByUsername(username string) (*User, error) {
 	u := new(User)
-	if err := db.Model(User{}).Where("username = ?", username).First(u).Error; err != nil {
+	if err := DB.Model(User{}).Where("username = ?", username).First(u).Error; err != nil {
 		return nil, err
 	}
 
@@ -46,7 +46,7 @@ func GetUserByUsername(username string) (*User, error) {
 func GetUserByID(id uint) (*User, error) {
 	u := new(User)
 
-	if err := db.First(u, id).Error; err != nil {
+	if err := DB.First(u, id).Error; err != nil {
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func GetUserByID(id uint) (*User, error) {
 func GetAllUsers() ([]User, error) {
 	var users []User
 
-	if err := db.Find(&users).Error; err != nil {
+	if err := DB.Find(&users).Error; err != nil {
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func GetAllUsers() ([]User, error) {
 func GetCampaign(id uint) (*Campaign, error) {
 	c := new(Campaign)
 
-	if err := db.Table("campaigns").First(c, id).Error; err != nil {
+	if err := DB.Table("campaigns").First(c, id).Error; err != nil {
 		return nil, err
 	}
 
@@ -169,7 +169,7 @@ func GetWebsite(url string) (*protocol.Website, error) {
 	sqlWebsite := new(WebsiteSQL)
 	url = strings.TrimSuffix(url, "/")
 
-	if err := db.Table("websites").Model(WebsiteSQL{}).Where("base_url = ?", url).First(sqlWebsite).Error; err != nil {
+	if err := DB.Table("websites").Model(WebsiteSQL{}).Where("base_url = ?", url).First(sqlWebsite).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, protocol.ErrWebsiteNotFound
 		}
@@ -192,13 +192,13 @@ func SaveWebsites(websites []*protocol.Website) {
 			found, _ := GetWebsite(wb.BaseUrl)
 			// update or insert if not found
 			if found == nil {
-				if err := db.Table("websites").Create(makeWebsiteSQL(wb)).Error; err != nil {
+				if err := DB.Table("websites").Create(makeWebsiteSQL(wb)).Error; err != nil {
 					log.Printf("failed to save %s: %v", wb.BaseUrl, err)
 				}
 				return
 			} else {
 				merged := CompareUpdateWebsite(wb, found)
-				if err := db.Table("websites").Where("base_url = ?", wb.BaseUrl).Save(makeWebsiteSQL(merged)).Error; err != nil {
+				if err := DB.Table("websites").Where("base_url = ?", wb.BaseUrl).Save(makeWebsiteSQL(merged)).Error; err != nil {
 					log.Printf("failed to update %s: %v", wb.BaseUrl, err)
 				}
 			}

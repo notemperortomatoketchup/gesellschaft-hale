@@ -7,3 +7,5 @@ database:
 jwt:
   enabled: true
   secret: "MyJWT303003030222"
+session:
+  duration: 1 # hours
