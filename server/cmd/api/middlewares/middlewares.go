@@ -49,7 +49,7 @@ func AdminOnly(c *fiber.Ctx) error {
 	return fiber.ErrUnauthorized
 }
 
-func LocalsStorer(c *fiber.Ctx) error {
+func IDStorer(c *fiber.Ctx) error {
 	requestUrl := c.OriginalURL()
 	parts := strings.Split(requestUrl, "/")
 	idParam := parts[len(parts)-1]

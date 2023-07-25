@@ -148,11 +148,6 @@ func (app *Application) handleMails(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func (app *Application) Test(c *fiber.Ctx) error {
-	u := c.Locals("user").(models.User)
-	fmt.Println("User ->", u)
-	return nil
-}
 func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 	request := new(KeywordRequest)
 	response := new(WebsitesResponse)

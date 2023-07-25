@@ -16,7 +16,7 @@ func (app *Application) StartRouter(f *fiber.App) {
 
 	api := f.Group("/api")
 	api.Use(middlewares.SessionChecker)
-	api.Use(middlewares.LocalsStorer)
+	api.Use(middlewares.IDStorer)
 	api.Post("/getmails", app.handleMails)
 	api.Post("/keyword", app.handleKeyword)
 	api.Post("/keywordmail", app.handleKeywordMails)
