@@ -37,6 +37,7 @@ func (s *Server) StatusChan(stream protocol.Haler_StatusChanServer) error {
 			}
 
 			current, exists := s.app.clients.Load(status.GetId())
+
 			// if not existing, we create it fully
 			if !exists {
 				s.app.clients.Store(status.GetId(), &Client{

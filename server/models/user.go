@@ -13,12 +13,13 @@ const (
 )
 
 type User struct {
-	ID           *uint  `json:"id,omitempty" gorm:"id,primarykey"`
-	Username     string `json:"username" gorm:"username"`
-	Hashed       string `json:"hashed_password" gorm:"hashed"`
-	Role         int    `json:"role" gorm:"role"`
-	NotionSecret string `json:"notion_secret" gorm:"notion_secret"`
-	NotionParent string `json:"notion_parent" gorm:"notion_parent"`
+	ID           *uint  `json:"id,omitempty"`
+	Username     string `json:"username" gorm:"column:username"`
+	Email        string `json:"email" gorm:"column:email"`
+	Hashed       string `json:"hashed_password" gorm:"column:hashed"`
+	Role         int    `json:"role" gorm:"column:role"`
+	NotionSecret string `json:"notion_secret" gorm:"column:notion_secret"`
+	NotionParent string `json:"notion_parent" gorm:"column:notion_parent"`
 }
 
 func (u *User) Insert() error {
@@ -53,6 +54,11 @@ func (u *User) IsPassword(raw string) error {
 
 func (u *User) SetUsername(username string) *User {
 	u.Username = username
+	return u
+}
+
+func (u *User) SetEmail(email string) *User {
+	u.Email = email
 	return u
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -62,9 +63,16 @@ type KeywordRequest struct {
 	DomainOpts
 }
 
-type AuthRequest struct {
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required_without=Username,omitempty,min=3,max=64,email"`
+	Username string `json:"username" validate:"required_without=Email,omitempty,min=3,max=32"`
+	Password string `json:"password" validate:"required,min=3,max=32"`
+}
+
+type RegisterRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=32"`
 	Password string `json:"password" validate:"required,min=3,max=32"`
+	Email    string `json:"email" validate:"required,min=3,max=64,email"`
 }
 
 type ChangePasswordRequest struct {
@@ -179,7 +187,7 @@ func (app *Application) handleKeywordMails(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleRegister(c *fiber.Ctx) error {
-	request := new(AuthRequest)
+	request := new(RegisterRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
@@ -187,7 +195,7 @@ func (app *Application) handleRegister(c *fiber.Ctx) error {
 
 	user := new(models.User)
 
-	if err := user.SetUsername(request.Username).SetPassword(request.Password); err != nil {
+	if err := user.SetUsername(request.Username).SetEmail(request.Email).SetPassword(request.Password); err != nil {
 		return internalError(protocol.ErrPasswordEncryption)
 	}
 
@@ -218,25 +226,37 @@ func (app *Application) handleLogout(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleLogin(c *fiber.Ctx) error {
-	request := new(AuthRequest)
-
+	request := new(LoginRequest)
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)
 	}
 
-	// pull user from db
-	user, err := models.GetUserByUsername(request.Username)
-	if err != nil {
-		return internalError(err)
+	var user *models.User
+
+	emailRegex := regexp.MustCompile(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`)
+	isEmail := emailRegex.MatchString(request.Email)
+
+	if isEmail {
+		u, err := models.GetUserByEmail(request.Email)
+		if err != nil {
+			return badRequest(protocol.ErrInvalidCredentials)
+		}
+		user = u
+	} else {
+		u, err := models.GetUserByUsername(request.Username)
+		if err != nil {
+			return badRequest(protocol.ErrInvalidCredentials)
+		}
+		user = u
 	}
 
 	if err := user.IsPassword(request.Password); err != nil {
-		return badRequest(fmt.Errorf("%s", protocol.ErrInvalidCredentials))
+		return badRequest(protocol.ErrInvalidCredentials)
 	}
 
 	session, err := models.NewSession(*user.ID, 48*time.Hour)
 	if err != nil {
-		return internalError(err)
+		return internalError(protocol.ErrSessionCreation)
 	}
 
 	cookie := new(fiber.Cookie)
@@ -651,7 +671,7 @@ func (app *Application) handleEditUser(c *fiber.Ctx) error {
 }
 
 func (app *Application) handleCreateUser(c *fiber.Ctx) error {
-	request := new(AuthRequest)
+	request := new(RegisterRequest)
 
 	if err := bind(c, request); err != nil {
 		return validationError(c, err)

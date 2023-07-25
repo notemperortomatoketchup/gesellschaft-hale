@@ -43,6 +43,15 @@ func GetUserByUsername(username string) (*User, error) {
 	return u, nil
 }
 
+func GetUserByEmail(email string) (*User, error) {
+	u := new(User)
+	if err := DB.Model(User{}).Where("email = ?", email).First(u).Error; err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
 func GetUserByID(id uint) (*User, error) {
 	u := new(User)
 
