@@ -12,6 +12,7 @@ func isValidMail(m string) bool {
 	re := regexp.MustCompile(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`)
 	return re.MatchString(m)
 }
+
 func strContains(str string, patterns ...string) bool {
 	for _, pattern := range patterns {
 		if has := strings.Contains(str, pattern); has {

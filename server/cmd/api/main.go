@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -79,18 +78,6 @@ func main() {
 
 	go app.StartServer()
 	go app.StartAPI()
-
-	u, err := models.GetUserByID(12)
-	if err != nil {
-		log.Fatal("err ->", err)
-	}
-
-	sessions, err := u.GetSessions()
-	if err != nil {
-		log.Fatal("err ->", err)
-	}
-
-	fmt.Println("Sessions ->", sessions)
 
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, syscall.SIGTERM, syscall.SIGINT)

@@ -44,7 +44,6 @@ type QueueConfig struct {
 	maxTasks   int32
 	maxRunning int32
 }
-
 type EngineConfig struct {
 	baseLink string
 }
@@ -59,9 +58,13 @@ func main() {
 	app.startEngine()
 
 	app.initClient()
-	fmt.Println(app.Client.cfg)
 
-	defer app.Client.Conn.Close()
+	defer func() {
+		err := app.Client.Conn.Close()
+		if err != nil {
+			fmt.Println("Err closing: ", err)
+		}
+	}()
 	defer app.Client.Client.HandleExit(context.Background(), &protocol.ExitRequest{
 		Id: app.Client.Id,
 	})

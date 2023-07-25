@@ -46,7 +46,7 @@ func (app *Application) initClient() error {
 	ip := app.resolveDomain()
 	fmt.Println("ip ->", ip)
 
-	conn, err := grpc.Dial(ip+":50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(ip+":50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
 	if err != nil {
 		log.Fatalf("error dialing the grpc server: %v", err)
 	}
@@ -75,18 +75,17 @@ func (app *Application) handleConnectivity(err error) {
 			log.Println("connection type error, trying to reconnect")
 		}
 	}
-	log.Printf("other connectivity error: %v", err)
+	log.Printf("other connectivity error: %v\n", err)
 	return
 }
 
 func (app *Application) statusLoop() {
-	for range time.Tick(time.Second) {
-		stream, err := app.Client.Client.StatusChan(context.Background())
-		if err != nil {
-			app.handleConnectivity(err)
-			continue
-		}
+	stream, err := app.Client.Client.StatusChan(context.Background())
+	if err != nil {
+		app.handleConnectivity(err)
+	}
 
+	for range time.Tick(time.Second) {
 		slots := app.currentCapacity()
 		if err := stream.Send(&protocol.Status{
 			Id:    app.Client.Id,
@@ -102,13 +101,12 @@ func (app *Application) statusLoop() {
 }
 
 func (app *Application) listenLoop() {
-	for range time.Tick(time.Second) {
-		stream, err := app.Client.Client.ListenJobs(context.Background())
-		if err != nil {
-			app.handleConnectivity(err)
-			continue
-		}
+	stream, err := app.Client.Client.ListenJobs(context.Background())
+	if err != nil {
+		app.handleConnectivity(err)
+	}
 
+	for range time.Tick(time.Second) {
 		if err := stream.Send(&protocol.Empty{}); err != nil {
 			log.Printf("err sending in listenLoop: %v", err)
 			continue

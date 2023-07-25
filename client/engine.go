@@ -71,7 +71,6 @@ func (e *Engine) buildLangageBaseLink(domain string) string {
 	}
 
 	return e.baseLink + "domain_google=" + domain + "&gl=" + gl + "&hl=" + hl + "&"
-
 }
 
 func (e *Engine) scrapeKeyword(kw string, pages int, domain string) ([]*protocol.Website, error) {

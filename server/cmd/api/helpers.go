@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -149,6 +151,10 @@ func (app *Application) getMailsFromUrls(urls []string, method int) ([]*protocol
 		r, err := app.awaitResults(reqId)
 		if err != nil {
 			return nil, internalError(err)
+		}
+
+		if r.Error != "" && strings.Contains(r.Error, "transport") {
+			return nil, internalError(fmt.Errorf("internal error, please retry your request"))
 		}
 
 		models.SaveWebsites(r.GetResult())

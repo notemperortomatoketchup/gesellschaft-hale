@@ -64,6 +64,9 @@ func (s *Server) ListenJobs(stream protocol.Haler_ListenJobsServer) error {
 
 			req := <-s.app.requestCh
 			if err := stream.Send(req); err != nil {
+				s.app.results.Store(req.GetRequestId(), &protocol.ResponseJobWrapper{
+					Error: "transport to client has failed",
+				})
 				log.Printf("err sending job request: %v", err)
 			}
 		}
